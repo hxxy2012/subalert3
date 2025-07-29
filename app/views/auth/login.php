@@ -64,12 +64,12 @@
 <style>
 /* 登录页面专用样式 */
 .auth-container {
-    min-height: 100vh;
+    min-height: 0vh;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--gray-50);
-    padding: 1rem;
+    padding: 0rem;
 }
 
 .auth-card {

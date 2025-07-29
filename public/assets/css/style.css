@@ -119,12 +119,18 @@ body {
     background-color: var(--gray-100);
 }
 
-/* 主容器 */
+/* 主容器 - 优化：调整 min-height 避免页面过长 */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
-    min-height: calc(100vh - 80px);
+    min-height: 20px; /* 从 calc(100vh - 80px) 改为固定的合理高度  400改成20*/
+}
+
+/* 认证页面容器：特殊处理，不需要最小高度 */
+.auth-container .container {
+    min-height: auto;
+    padding: 1rem;
 }
 
 /* 页面标题 */
@@ -478,7 +484,7 @@ body {
 
 /* 认证页面 */
 .auth-container {
-    min-height: 100vh;
+    /*min-height: 100vh;  */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -583,6 +589,7 @@ body {
 
     .container {
         padding: 1rem;
+        min-height: 20px; /* 移动端进一步减小 200改为20 */
     }
 
     .page-title {
@@ -630,6 +637,7 @@ body {
 
     .container {
         padding: 0.75rem;
+        min-height: 20px; /* 小屏幕最小 150改为20*/
     }
 
     .page-title {

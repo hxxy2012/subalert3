@@ -1,68 +1,16 @@
-<!-- 管理员端页脚 - layout/admin_footer.php -->
+<?php
+// 管理员端页脚 - layout/admin_footer.php
+?>
 
     </main>
 
-    <footer style="background: var(--gray-800); color: var(--white); padding: 1.5rem 0; margin-top: 3rem;">
+    <footer style="background: var(--gray-800); color: var(--white); padding: 1rem 0; margin-top: 2rem;">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fas fa-shield-alt text-primary"></i>
-                        <span>&copy; <?php echo date('Y'); ?> SubAlert 管理后台</span>
-                    </div>
-
-                    <!-- 系统状态指示器 -->
-                    <div class="d-flex align-items-center gap-2">
-                        <div style="width: 8px; height: 8px; background: var(--success-color); border-radius: 50%; animation: pulse 2s infinite;"></div>
-                        <small style="color: var(--success-color);">系统运行正常</small>
-                    </div>
-                </div>
-
-                <div class="d-flex gap-4 text-muted">
-                    <small>
-                        <i class="fas fa-user-shield"></i>
-                        管理员：<?php echo htmlspecialchars($_SESSION['admin']['username'] ?? '未知'); ?>
-                    </small>
-                    <small>
-                        <i class="fas fa-clock"></i>
-                        <?php echo date('Y-m-d H:i:s'); ?>
-                    </small>
-                </div>
-            </div>
-
-            <!-- 移动端显示 -->
-            <div class="text-center mt-3 d-block d-md-none">
-                <small style="color: var(--gray-400);">
-                    <i class="fas fa-mobile-alt"></i>
-                    移动端管理界面
-                </small>
+            <div class="text-center">
+                <span>&copy; <?php echo date('Y'); ?> SubAlert 管理后台</span>
             </div>
         </div>
     </footer>
-
-    <style>
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        footer small {
-            font-size: 0.8rem;
-        }
-
-        @media (max-width: 768px) {
-            footer .d-flex {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            footer .d-flex > div {
-                justify-content: center;
-            }
-        }
-    </style>
 
     <!-- 管理员专用功能脚本 -->
     <script>
