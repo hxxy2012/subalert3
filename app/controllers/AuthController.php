@@ -97,7 +97,7 @@ class AuthController
     public function logout(): void
     {
         unset($_SESSION['user']);
-        flash('success', '已退出登录');
+        //flash('success', '已退出登录');
         redirect('/?r=login');
     }
 }

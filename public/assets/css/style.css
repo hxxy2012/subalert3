@@ -119,18 +119,12 @@ body {
     background-color: var(--gray-100);
 }
 
-/* 主容器 - 优化：调整 min-height 避免页面过长 */
+/* 主容器 - 保持原有样式，不修改 */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
-    min-height: 20px; /* 从 calc(100vh - 80px) 改为固定的合理高度  400改成20*/
-}
-
-/* 认证页面容器：特殊处理，不需要最小高度 */
-.auth-container .container {
-    min-height: auto;
-    padding: 1rem;
+    min-height: calc(100vh - 80px);
 }
 
 /* 页面标题 */
@@ -482,42 +476,6 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* 认证页面 */
-.auth-container {
-    /*min-height: 100vh;  */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--gray-50);
-    padding: 1rem;
-}
-
-.auth-card {
-    background: var(--white);
-    border-radius: var(--border-radius-lg);
-    padding: 3rem;
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--gray-200);
-    width: 100%;
-    max-width: 400px;
-}
-
-.auth-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.auth-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--gray-900);
-    margin-bottom: 0.5rem;
-}
-
-.auth-header p {
-    color: var(--gray-500);
-}
-
 /* 分页 */
 .pagination {
     display: flex;
@@ -589,7 +547,6 @@ body {
 
     .container {
         padding: 1rem;
-        min-height: 20px; /* 移动端进一步减小 200改为20 */
     }
 
     .page-title {
@@ -624,10 +581,6 @@ body {
         font-size: 0.75rem;
         padding: 0.5rem;
     }
-
-    .auth-card {
-        padding: 2rem;
-    }
 }
 
 @media (max-width: 480px) {
@@ -637,7 +590,6 @@ body {
 
     .container {
         padding: 0.75rem;
-        min-height: 20px; /* 小屏幕最小 150改为20*/
     }
 
     .page-title {
@@ -671,15 +623,6 @@ body {
     .table td {
         padding: 0.5rem 0.25rem;
         font-size: 0.75rem;
-    }
-
-    .auth-card {
-        padding: 1.5rem;
-        margin: 0.5rem;
-    }
-
-    .auth-header h1 {
-        font-size: 1.5rem;
     }
 }
 
@@ -747,3 +690,81 @@ body {
 .rounded { border-radius: var(--border-radius); }
 .shadow { box-shadow: var(--shadow); }
 .border { border: 1px solid var(--gray-200); }
+
+/* ================================
+   登录页面特殊样式
+   ================================ */
+
+/* 只在登录页面应用特殊布局 */
+.login-page-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--gray-50) 100%);
+}
+
+/* 登录页面的导航栏 */
+.login-page-body .navbar {
+    flex-shrink: 0;
+}
+
+/* 登录页面的主容器 */
+.login-page-body .container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    min-height: 0;
+    max-width: none;
+}
+
+/* 登录页面的footer */
+.site-footer {
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    padding: 0.75rem 0;
+    flex-shrink: 0;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    text-align: center;
+    color: var(--gray-600);
+    font-size: 0.8rem;
+}
+
+/* 登录页面响应式 */
+@media (max-width: 768px) {
+    .login-page-body .container {
+        padding: 1.5rem 1rem;
+    }
+    
+    .footer-content {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-page-body .container {
+        padding: 1rem 0.75rem;
+    }
+    
+    .site-footer {
+        padding: 0.5rem 0;
+    }
+}
+
+@media (max-width: 360px) {
+    .login-page-body .container {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+@media (min-height: 800px) {
+    .login-page-body .container {
+        padding: 3rem 1rem;
+    }
+}

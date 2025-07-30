@@ -3,15 +3,13 @@
 ?>
     </main>
 
-    <footer style="background: var(--white); border-top: 1px solid var(--gray-200); padding: 0rem 0; margin-top: 0rem;">
-        <div class="container">
-            <div class="text-center">
-                <span>&copy; <?php echo date('Y'); ?> SubAlert. 专业的订阅管理工具</span>
-            </div>
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span>&copy; <?php echo date('Y'); ?> SubAlert. 专业的订阅管理工具</span>
         </div>
     </footer>
 
-    <!-- 回到顶部按钮 -->
+    <!-- 回到顶部按钮（可选功能，默认注释） -->
     <!-- 
     <button id="backToTop"
             style="display: none; position: fixed; bottom: 2rem; right: 2rem; width: 50px; height: 50px; background: var(--primary-color); color: white; border: none; border-radius: 50%; cursor: pointer; z-index: 999; box-shadow: var(--shadow-lg); transition: var(--transition);"
@@ -21,6 +19,7 @@
     </button>
     -->
 
+    <!-- 回到顶部功能脚本（可选功能，默认注释） -->
     <!--
     <script>
         // 回到顶部功能
@@ -49,7 +48,6 @@
             this.style.transform = 'scale(1)';
         });
     </script>
-    
     -->
 </body>
 </html>

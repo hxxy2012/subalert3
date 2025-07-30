@@ -86,13 +86,15 @@ if (session_status() === PHP_SESSION_NONE) {
                     </li>
                 <?php else: ?>
                     <li>
-                        <a href="/?r=login&amp;lang=<?php echo current_lang(); ?>">
+                        <a href="/?r=login&amp;lang=<?php echo current_lang(); ?>"
+                           class="<?php echo ($_GET['r'] ?? '') === 'login' ? 'active' : ''; ?>">
                             <i class="fas fa-sign-in-alt"></i>
                             <?php echo __('login'); ?>
                         </a>
                     </li>
                     <li>
-                        <a href="/?r=register&amp;lang=<?php echo current_lang(); ?>">
+                        <a href="/?r=register&amp;lang=<?php echo current_lang(); ?>"
+                           class="<?php echo ($_GET['r'] ?? '') === 'register' ? 'active' : ''; ?>">
                             <i class="fas fa-user-plus"></i>
                             <?php echo __('register'); ?>
                         </a>
