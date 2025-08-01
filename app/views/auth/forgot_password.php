@@ -237,7 +237,7 @@ body {
 @media (max-width: 480px) {
     .container {
         padding: 1rem 0.75rem 0.75rem 0.75rem;
-        min-height: calc(100vh - 110px);
+        min-height: calc(100vh - 110px); 
     }
 
     .auth-card {
@@ -300,7 +300,7 @@ body {
             <li>请确保输入正确的注册邮箱地址</li>
             <li>重置链接有效期为1小时</li>
             <li>如未收到邮件，请检查垃圾邮箱</li>
-            <li>每个邮箱地址5分钟内只能申请一次</li>
+            <li>每个邮箱地址30秒内只能申请一次</li>
         </ul>
     </div>
 
@@ -342,19 +342,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const forgotBtn = document.getElementById('forgotBtn');
     const emailInput = document.getElementById('email');
     const inputs = document.querySelectorAll('.auth-form .form-control');
-
+    
     // 输入框焦点效果
     inputs.forEach(input => {
         input.addEventListener('focus', function() {
             this.parentElement.classList.add('focused');
         });
-
+        
         input.addEventListener('blur', function() {
             if (!this.value) {
                 this.parentElement.classList.remove('focused');
             }
         });
-
+        
         // 初始化时检查是否有值
         if (input.value) {
             input.parentElement.classList.add('focused');
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
     emailInput.addEventListener('input', function() {
         const email = this.value.trim();
         const small = this.parentElement.querySelector('small');
-
+        
         if (email && !isValidEmail(email)) {
             small.textContent = '请输入有效的邮箱地址格式';
             small.className = 'text-danger';
@@ -396,12 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示加载状态
         forgotBtn.disabled = true;
         forgotBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
-
-        // 模拟发送过程（实际项目中由后端处理）
-        setTimeout(() => {
-            // 这里通常是后端处理完成后的回调
-            // 为了演示，我们在3秒后恢复按钮状态
-        }, 3000);
     });
 
     // 自动聚焦邮箱输入框
@@ -441,15 +435,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         isSubmitting = true;
-
-        // 10秒后允许重新提交（防止网络问题导致的卡死）
+        
+        // 30秒后允许重新提交（与后端频率限制保持一致）
         setTimeout(() => {
             isSubmitting = false;
             if (forgotBtn.disabled) {
                 forgotBtn.disabled = false;
                 forgotBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送重置链接';
             }
-        }, 10000);
+        }, 30000);
     });
 });
 
@@ -472,7 +466,7 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// CSS动画定义
+// 增强Flash消息的样式和功能
 const style = document.createElement('style');
 style.textContent = `
     .alert-danger {
@@ -486,6 +480,60 @@ style.textContent = `
         align-items: center;
         gap: 0.5rem;
     }
+    
+    /* 重置链接特殊样式 */
+    .reset-link {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white !important;
+        text-decoration: none !important;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        margin: 0.5rem 0;
+        transition: var(--transition);
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    
+    .reset-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    }
+    
+    .login-link {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: var(--success-color);
+        color: white !important;
+        text-decoration: none !important;
+        border-radius: var(--border-radius);
+        font-weight: 500;
+        margin-top: 0.5rem;
+        transition: var(--transition);
+    }
+    
+    .login-link:hover {
+        background: #059669;
+        transform: translateY(-1px);
+    }
 `;
 document.head.appendChild(style);
+
+// 自动隐藏成功消息（延迟隐藏，给用户时间点击链接）
+document.addEventListener('DOMContentLoaded', function() {
+    const successMessages = document.querySelectorAll('.flash-success');
+    successMessages.forEach(message => {
+        // 如果包含链接，则不自动隐藏
+        if (!message.querySelector('a')) {
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.classList.add('flash-removing');
+                    setTimeout(() => {
+                        message.remove();
+                    }, 300);
+                }
+            }, 8000); // 8秒后自动隐藏
+        }
+    });
+});
 </script>

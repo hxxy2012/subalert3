@@ -26,6 +26,16 @@ class ForgotPasswordController
                 view('auth/forgot_password');
                 return;
             }
+            
+            // 检查是否在30秒内已经申请过
+            $stmt = $pdo->prepare('SELECT created_at FROM password_resets WHERE email = ? AND created_at > DATE_SUB(NOW(), INTERVAL 30 SECOND)');
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                flash('warning', '请求过于频繁，请等待30秒后再试');
+                view('auth/forgot_password');
+                return;
+            }
+            
             // Generate token
             $token = bin2hex(random_bytes(32));
             // Delete existing tokens for this email
@@ -33,9 +43,22 @@ class ForgotPasswordController
             // Insert new token
             $stmt = $pdo->prepare('INSERT INTO password_resets (email, token, created_at) VALUES (?, ?, NOW())');
             $stmt->execute([$email, $token]);
-            // For demonstration, we display the reset link instead of sending email
-            $resetLink = '/index.php?r=reset-password&token=' . $token;
-            flash('success', '重置链接已生成。请点击链接重设密码：<a href="' . $resetLink . '">' . $resetLink . '</a>');
+            
+            // 构建重置链接
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'];
+            $resetLink = $protocol . '://' . $host . '/index.php?r=reset-password&token=' . $token;
+            
+            // 创建包含HTML的成功消息
+            $message = '密码重置链接已发送！<br><br>';
+            $message .= '请点击下方链接重设密码：<br>';
+            $message .= '<a href="' . htmlspecialchars($resetLink) . '" class="reset-link" target="_blank">';
+            $message .= '<i class="fas fa-key"></i> 点击这里重设密码';
+            $message .= '</a><br><br>';
+            $message .= '<small class="text-muted">链接有效期为1小时，请及时使用</small>';
+            
+            // 使用支持HTML的flash消息
+            flash('success', $message, true);
             view('auth/forgot_password');
         } else {
             view('auth/forgot_password');
@@ -49,44 +72,60 @@ class ForgotPasswordController
     {
         $token = $_GET['token'] ?? '';
         $pdo = DB::getConnection();
+        
         // Validate token
         $stmt = $pdo->prepare('SELECT * FROM password_resets WHERE token = ?');
         $stmt->execute([$token]);
         $record = $stmt->fetch();
+        
         if (!$record) {
             flash('error', '无效或已使用的重置令牌');
             view('auth/reset_password');
             return;
         }
+        
         // Check expiry (1 hour)
         $createdAt = strtotime($record['created_at']);
         if (time() - $createdAt > 3600) {
             // Remove expired token
             $pdo->prepare('DELETE FROM password_resets WHERE token = ?')->execute([$token]);
-            flash('error', '重置令牌已过期');
+            flash('error', '重置令牌已过期，请重新申请');
             view('auth/reset_password');
             return;
         }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newPassword = $_POST['new_password'] ?? '';
             $confirm = $_POST['confirm_password'] ?? '';
+            
             if (strlen($newPassword) < 8) {
                 flash('error', '新密码长度至少8位');
                 view('auth/reset_password', ['token' => $token]);
                 return;
             }
+            
             if ($newPassword !== $confirm) {
                 flash('error', '两次密码不一致');
                 view('auth/reset_password', ['token' => $token]);
                 return;
             }
+            
             $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+            
             // Update user password by email
             $stmt = $pdo->prepare('UPDATE users SET password=?, updated_at=NOW() WHERE email=?');
             $stmt->execute([$hash, $record['email']]);
+            
             // Remove token
             $pdo->prepare('DELETE FROM password_resets WHERE token=?')->execute([$token]);
-            flash('success', '密码重置成功，请登录');
+            
+            // 成功消息
+            $successMessage = '密码重置成功！<br>';
+            $successMessage .= '<a href="/?r=login" class="login-link">';
+            $successMessage .= '<i class="fas fa-sign-in-alt"></i> 立即登录';
+            $successMessage .= '</a>';
+            
+            flash('success', $successMessage, true);
             redirect('/?r=login');
             return;
         } else {

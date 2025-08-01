@@ -221,7 +221,7 @@ body {
 @media (max-width: 480px) {
     .container {
         padding: 1rem 0.75rem 0.75rem 0.75rem;
-        min-height: calc(100vh - 110px);
+        min-height: calc(100vh - 110px); 
     }
 
     .auth-card {
@@ -362,19 +362,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmInput = document.getElementById('confirm');
     const emailInput = document.getElementById('email');
     const nicknameInput = document.getElementById('nickname');
-
+    
     // 输入框焦点效果
     inputs.forEach(input => {
         input.addEventListener('focus', function() {
             this.parentElement.classList.add('focused');
         });
-
+        
         input.addEventListener('blur', function() {
             if (!this.value) {
                 this.parentElement.classList.remove('focused');
             }
         });
-
+        
         // 初始化时检查是否有值
         if (input.value) {
             input.parentElement.classList.add('focused');
@@ -385,30 +385,30 @@ document.addEventListener('DOMContentLoaded', function() {
     passwordInput.addEventListener('input', function() {
         const password = this.value;
         const strengthDiv = document.getElementById('passwordStrength');
-
+        
         if (password.length === 0) {
             strengthDiv.textContent = '';
             return;
         }
-
+        
         let strength = 0;
         let tips = [];
-
+        
         if (password.length >= 8) strength++;
         else tips.push('至少8位');
-
+        
         if (/[a-z]/.test(password)) strength++;
         else tips.push('包含小写字母');
-
+        
         if (/[A-Z]/.test(password)) strength++;
         else tips.push('包含大写字母');
-
+        
         if (/[0-9]/.test(password)) strength++;
         else tips.push('包含数字');
-
+        
         if (/[^A-Za-z0-9]/.test(password)) strength++;
         else tips.push('包含特殊字符');
-
+        
         if (strength <= 2) {
             strengthDiv.className = 'password-strength strength-weak';
             strengthDiv.textContent = '密码强度：弱 (建议' + tips.slice(0, 2).join('、') + ')';
@@ -426,13 +426,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const password = passwordInput.value;
         const confirm = confirmInput.value;
         const hint = document.getElementById('confirmHint');
-
+        
         if (confirm.length === 0) {
             hint.textContent = '请确保两次输入的密码一致';
             hint.className = 'text-muted';
             return;
         }
-
+        
         if (password === confirm) {
             hint.textContent = '密码确认一致';
             hint.className = 'text-success';
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
     nicknameInput.addEventListener('input', function() {
         const length = this.value.length;
         const small = this.parentElement.querySelector('small');
-
+        
         if (length > 20) {
             small.textContent = '昵称长度不能超过20个字符';
             small.className = 'text-danger';

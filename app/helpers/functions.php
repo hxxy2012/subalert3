@@ -103,24 +103,59 @@ function require_login(): void
 
 /**
  * Flash a message to session to be displayed once.
- *
- * @param string $type    Message type (success, error, warning)
- * @param string $message Message text
+ * 
+ * @param string $type    Message type (success, error, warning, info)
+ * @param string $message Message text (can contain HTML)
+ * @param bool   $allowHtml Whether to allow HTML in the message (default: false)
  */
-function flash(string $type, string $message): void
+function flash(string $type, string $message, bool $allowHtml = false): void
 {
-    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+    $_SESSION['flash'][] = [
+        'type' => $type, 
+        'message' => $message,
+        'allow_html' => $allowHtml
+    ];
 }
 
 /**
  * Display flashed messages, then clear them.
+ * Enhanced version with better styling and HTML support.
  */
 function display_flash(): void
 {
     if (!empty($_SESSION['flash'])) {
         foreach ($_SESSION['flash'] as $msg) {
-            $class = htmlspecialchars($msg['type']);
-            echo "<div class='alert {$class}'>" . htmlspecialchars($msg['message']) . "</div>";
+            $type = htmlspecialchars($msg['type']);
+            $allowHtml = $msg['allow_html'] ?? false;
+            
+            // 安全地处理消息内容
+            if ($allowHtml) {
+                // 如果允许HTML，则不进行转义，但需要确保内容来源可信
+                $message = $msg['message'];
+            } else {
+                // 默认情况下转义HTML以防止XSS
+                $message = htmlspecialchars($msg['message']);
+            }
+            
+            // 根据类型选择图标
+            $icons = [
+                'success' => 'fas fa-check-circle',
+                'error' => 'fas fa-exclamation-triangle', 
+                'warning' => 'fas fa-exclamation-circle',
+                'info' => 'fas fa-info-circle'
+            ];
+            $icon = $icons[$msg['type']] ?? 'fas fa-info-circle';
+            
+            // 输出增强的Flash消息
+            echo "<div class='flash-message flash-{$type}' id='flash-" . uniqid() . "'>";
+            echo "<div class='flash-content'>";
+            echo "<i class='{$icon}'></i>";
+            echo "<div class='flash-text'>{$message}</div>";
+            echo "<button class='flash-close' onclick='this.parentElement.parentElement.remove()'>";
+            echo "<i class='fas fa-times'></i>";
+            echo "</button>";
+            echo "</div>";
+            echo "</div>";
         }
         unset($_SESSION['flash']);
     }

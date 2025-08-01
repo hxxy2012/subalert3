@@ -504,6 +504,238 @@ body {
     border-color: var(--primary-color);
 }
 
+/* ================================
+   增强Flash消息样式
+   ================================ */
+
+.flash-message {
+    position: relative;
+    margin-bottom: 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid;
+    overflow: hidden;
+    animation: flashSlideIn 0.3s ease-out;
+    box-shadow: var(--shadow);
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.flash-content {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem 3rem 1rem 1rem;
+    gap: 0.75rem;
+}
+
+.flash-content i:first-child {
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    margin-top: 0.1rem;
+}
+
+.flash-text {
+    flex: 1;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.flash-text a {
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.flash-text a:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+.flash-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    opacity: 0.7;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flash-close:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Flash消息类型样式 */
+.flash-success {
+    background-color: var(--success-light);
+    border-color: #a7f3d0;
+    color: #065f46;
+}
+
+.flash-success .flash-close:hover {
+    background-color: rgba(6, 95, 70, 0.1);
+}
+
+.flash-error {
+    background-color: var(--danger-light);
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.flash-error .flash-close:hover {
+    background-color: rgba(153, 27, 27, 0.1);
+}
+
+.flash-warning {
+    background-color: var(--warning-light);
+    border-color: #fde68a;
+    color: #92400e;
+}
+
+.flash-warning .flash-close:hover {
+    background-color: rgba(146, 64, 14, 0.1);
+}
+
+.flash-info {
+    background-color: var(--primary-light);
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+
+.flash-info .flash-close:hover {
+    background-color: rgba(30, 64, 175, 0.1);
+}
+
+/* Flash消息动画 */
+@keyframes flashSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes flashSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 200px;
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+        max-height: 0;
+        margin: 0;
+        padding: 0;
+    }
+}
+
+.flash-message.flash-removing {
+    animation: flashSlideOut 0.3s ease-in forwards;
+}
+
+/* 自动隐藏功能 */
+.flash-message.flash-auto-hide {
+    position: relative;
+}
+
+.flash-message.flash-auto-hide::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: currentColor;
+    opacity: 0.3;
+    animation: flashProgress 5s linear forwards;
+}
+
+@keyframes flashProgress {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+/* 特殊样式：带链接的Flash消息 */
+.flash-message.has-link .flash-text {
+    padding-right: 1rem;
+}
+
+.reset-link {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white !important;
+    text-decoration: none !important;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    margin: 0.5rem 0;
+    transition: var(--transition);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.reset-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    color: white !important;
+}
+
+.login-link {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: var(--success-color);
+    color: white !important;
+    text-decoration: none !important;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    margin-top: 0.5rem;
+    transition: var(--transition);
+}
+
+.login-link:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    color: white !important;
+}
+
+/* 多个Flash消息的堆叠效果 */
+.flash-message + .flash-message {
+    margin-top: 0.5rem;
+}
+
+/* Flash消息容器 */
+.flash-container {
+    position: fixed;
+    top: 80px; /* 导航栏下方 */
+    right: 1rem;
+    left: 1rem;
+    z-index: 9999;
+    pointer-events: none;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.flash-container .flash-message {
+    pointer-events: all;
+    margin-bottom: 0.5rem;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
     .stats-grid {
@@ -581,6 +813,29 @@ body {
         font-size: 0.75rem;
         padding: 0.5rem;
     }
+
+    /* Flash消息响应式 */
+    .flash-content {
+        padding: 0.875rem 2.5rem 0.875rem 0.875rem;
+        gap: 0.5rem;
+    }
+    
+    .flash-close {
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 20px;
+        height: 20px;
+    }
+    
+    .flash-text {
+        font-size: 0.9rem;
+    }
+
+    .flash-container {
+        top: 70px;
+        right: 0.5rem;
+        left: 0.5rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -623,6 +878,26 @@ body {
     .table td {
         padding: 0.5rem 0.25rem;
         font-size: 0.75rem;
+    }
+
+    /* Flash消息移动端优化 */
+    .flash-content {
+        padding: 0.75rem 2rem 0.75rem 0.75rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .flash-content i:first-child {
+        align-self: flex-start;
+    }
+    
+    .flash-text {
+        font-size: 0.875rem;
+    }
+    
+    .flash-close {
+        top: 0.25rem;
+        right: 0.25rem;
     }
 }
 
@@ -734,6 +1009,16 @@ body {
     text-align: center;
     color: var(--gray-600);
     font-size: 0.8rem;
+}
+
+/* 为登录页面等特殊页面调整Flash消息 */
+.login-page-body .flash-container {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    margin-bottom: 1rem;
+    max-width: 450px;
 }
 
 /* 登录页面响应式 */
