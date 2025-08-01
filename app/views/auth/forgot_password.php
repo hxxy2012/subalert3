@@ -10,11 +10,10 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 125px); /* 减去导航栏高度 */
-    padding: 2rem 1rem 1rem 1rem; /* 底部留小一点间距给footer */
+    min-height: calc(100vh - 125px);
+    padding: 2rem 1rem 1rem 1rem;
 }
 
-/* 忘记密码卡片 - 与登录页面保持一致 */
 .auth-card {
     background: var(--white);
     border-radius: var(--border-radius-lg);
@@ -78,7 +77,6 @@ body {
     line-height: 1.5;
 }
 
-/* 信息提示 */
 .info-notice {
     background: var(--primary-light);
     border: 1px solid #bfdbfe;
@@ -103,7 +101,6 @@ body {
     margin-bottom: 0.25rem;
 }
 
-/* 表单样式 */
 .auth-form .form-group {
     margin-bottom: 1.3125rem;
     position: relative;
@@ -137,7 +134,6 @@ body {
     color: var(--gray-400);
 }
 
-/* 按钮样式 */
 .auth-form .btn {
     display: inline-flex;
     align-items: center;
@@ -171,7 +167,6 @@ body {
     transform: none;
 }
 
-/* 链接区域 */
 .auth-links {
     margin-top: 1.3125rem;
     text-align: center;
@@ -190,13 +185,11 @@ body {
     text-decoration: underline;
 }
 
-/* 输入框聚焦效果 */
 .auth-form .form-group.focused .form-control {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-/* 进场动画 */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -281,6 +274,46 @@ body {
         margin-bottom: 1.125rem;
     }
 }
+
+/* 邮件发送成功状态样式 */
+.email-success-info {
+    background: var(--success-light);
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.email-success-info h4 {
+    color: #047857;
+    margin-bottom: 0.5rem;
+}
+
+.email-warning-info {
+    background: var(--warning-light);
+    border: 1px solid #fde68a;
+    color: #92400e;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.email-warning-info h4 {
+    color: #d97706;
+    margin-bottom: 0.5rem;
+}
+
+/* 输入状态样式 */
+.form-group.has-error .form-control {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 3px var(--danger-light);
+}
+
+.form-group.has-success .form-control {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 3px var(--success-light);
+}
 </style>
 
 <div class="auth-card">
@@ -299,8 +332,9 @@ body {
         <ul>
             <li>请确保输入正确的注册邮箱地址</li>
             <li>重置链接有效期为1小时</li>
-            <li>如未收到邮件，请检查垃圾邮箱</li>
+            <li>如未收到邮件，请检查垃圾邮件文件夹</li>
             <li>每个邮箱地址30秒内只能申请一次</li>
+            <li>重置链接将通过邮件发送，不会在页面显示</li>
         </ul>
     </div>
 
@@ -322,7 +356,7 @@ body {
 
         <button type="submit" class="btn btn-primary" id="forgotBtn">
             <i class="fas fa-paper-plane"></i>
-            发送重置链接
+            发送重置邮件
         </button>
     </form>
 
@@ -347,12 +381,14 @@ document.addEventListener('DOMContentLoaded', function() {
     inputs.forEach(input => {
         input.addEventListener('focus', function() {
             this.parentElement.classList.add('focused');
+            this.parentElement.classList.remove('has-error');
         });
         
         input.addEventListener('blur', function() {
             if (!this.value) {
                 this.parentElement.classList.remove('focused');
             }
+            validateInput(this);
         });
         
         // 初始化时检查是否有值
@@ -363,17 +399,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 邮箱实时验证
     emailInput.addEventListener('input', function() {
-        const email = this.value.trim();
-        const small = this.parentElement.querySelector('small');
-        
-        if (email && !isValidEmail(email)) {
-            small.textContent = '请输入有效的邮箱地址格式';
-            small.className = 'text-danger';
-        } else {
-            small.textContent = '请输入您注册账户时使用的邮箱地址';
-            small.className = 'text-muted';
-        }
+        validateInput(this);
     });
+
+    // 输入验证函数
+    function validateInput(input) {
+        const formGroup = input.parentElement;
+        const small = formGroup.querySelector('small');
+        
+        if (input.type === 'email') {
+            const email = input.value.trim();
+            
+            if (email && !isValidEmail(email)) {
+                formGroup.classList.add('has-error');
+                formGroup.classList.remove('has-success');
+                small.textContent = '请输入有效的邮箱地址格式';
+                small.className = 'text-danger';
+            } else if (email && isValidEmail(email)) {
+                formGroup.classList.remove('has-error');
+                formGroup.classList.add('has-success');
+                small.textContent = '邮箱格式正确';
+                small.className = 'text-success';
+            } else {
+                formGroup.classList.remove('has-error', 'has-success');
+                small.textContent = '请输入您注册账户时使用的邮箱地址';
+                small.className = 'text-muted';
+            }
+        }
+    }
 
     // 表单提交处理
     forgotForm.addEventListener('submit', function(e) {
@@ -396,6 +449,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示加载状态
         forgotBtn.disabled = true;
         forgotBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+        
+        // 添加提示信息
+        showInfo('正在发送邮件，请稍候...');
     });
 
     // 自动聚焦邮箱输入框
@@ -405,26 +461,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 错误提示函数
     function showError(message) {
-        // 移除现有错误提示
-        const existingError = document.querySelector('.temp-error');
-        if (existingError) {
-            existingError.remove();
-        }
-
-        // 创建新的错误提示
+        removeExistingAlerts();
+        
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'alert alert-danger temp-error';
+        errorDiv.className = 'alert alert-danger temp-alert';
         errorDiv.innerHTML = `
             <i class="fas fa-exclamation-triangle"></i>
             ${message}
         `;
 
         forgotForm.insertBefore(errorDiv, forgotForm.firstChild);
-
-        // 3秒后自动移除
+        
         setTimeout(() => {
-            errorDiv.remove();
-        }, 3000);
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // 信息提示函数
+    function showInfo(message) {
+        removeExistingAlerts();
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'alert alert-info temp-alert';
+        infoDiv.innerHTML = `
+            <i class="fas fa-info-circle"></i>
+            ${message}
+        `;
+
+        forgotForm.insertBefore(infoDiv, forgotForm.firstChild);
+    }
+
+    // 移除现有提示
+    function removeExistingAlerts() {
+        const existingAlerts = document.querySelectorAll('.temp-alert');
+        existingAlerts.forEach(alert => alert.remove());
     }
 
     // 防止重复提交
@@ -441,9 +513,17 @@ document.addEventListener('DOMContentLoaded', function() {
             isSubmitting = false;
             if (forgotBtn.disabled) {
                 forgotBtn.disabled = false;
-                forgotBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送重置链接';
+                forgotBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送重置邮件';
             }
         }, 30000);
+    });
+
+    // 页面刷新/离开时恢复按钮状态
+    window.addEventListener('beforeunload', function() {
+        if (forgotBtn.disabled) {
+            forgotBtn.disabled = false;
+            forgotBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送重置邮件';
+        }
     });
 });
 
@@ -466,74 +546,67 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// 增强Flash消息的样式和功能
+// 增强样式
 const style = document.createElement('style');
 style.textContent = `
-    .alert-danger {
-        background-color: var(--danger-light);
-        border: 1px solid #fecaca;
-        color: #991b1b;
+    .alert {
         padding: 1rem;
         border-radius: var(--border-radius);
         margin-bottom: 1rem;
+        border: 1px solid;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.75rem;
+        font-size: 0.9rem;
     }
     
-    /* 重置链接特殊样式 */
-    .reset-link {
+    .alert-danger {
+        background-color: var(--danger-light);
+        border-color: #fecaca;
+        color: #991b1b;
+    }
+    
+    .alert-info {
+        background-color: var(--primary-light);
+        border-color: #bfdbfe;
+        color: #1e40af;
+    }
+    
+    .temp-alert {
+        animation: slideInDown 0.3s ease-out;
+    }
+    
+    @keyframes slideInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* 登录链接特殊样式 */
+    .login-link {
         display: inline-block;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        background: var(--success-color);
         color: white !important;
         text-decoration: none !important;
         border-radius: var(--border-radius);
         font-weight: 600;
         margin: 0.5rem 0;
         transition: var(--transition);
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-    }
-    
-    .reset-link:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
-    }
-    
-    .login-link {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        background: var(--success-color);
-        color: white !important;
-        text-decoration: none !important;
-        border-radius: var(--border-radius);
-        font-weight: 500;
-        margin-top: 0.5rem;
-        transition: var(--transition);
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
     }
     
     .login-link:hover {
         background: #059669;
         transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+        color: white !important;
     }
 `;
 document.head.appendChild(style);
-
-// 自动隐藏成功消息（延迟隐藏，给用户时间点击链接）
-document.addEventListener('DOMContentLoaded', function() {
-    const successMessages = document.querySelectorAll('.flash-success');
-    successMessages.forEach(message => {
-        // 如果包含链接，则不自动隐藏
-        if (!message.querySelector('a')) {
-            setTimeout(() => {
-                if (message.parentNode) {
-                    message.classList.add('flash-removing');
-                    setTimeout(() => {
-                        message.remove();
-                    }, 300);
-                }
-            }, 8000); // 8秒后自动隐藏
-        }
-    });
-});
 </script>
