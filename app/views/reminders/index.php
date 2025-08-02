@@ -1,7 +1,7 @@
 <?php
 // 分页参数
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 10; // 每页显示20条
+$perPage = 5; // 每页显示20条
 $offset = ($page - 1) * $perPage;
 
 // 构建查询条件
@@ -49,83 +49,21 @@ $dataStmt->execute($params);
 $reminders = $dataStmt->fetchAll();
 ?>
 
-<h1 class="page-title">
-    <i class="fas fa-bell"></i>
-    提醒管理
-</h1>
-
-<!-- 操作栏 -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="/?r=subscriptions" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    添加订阅提醒
-                </a>
-                <a href="/?r=dashboard" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-left"></i>
-                    返回仪表盘
-                </a>
-            </div>
-
-            <!-- 状态筛选器 -->
-            <div class="d-flex gap-2 flex-wrap">
-                <select class="form-control" style="width: auto;" onchange="filterReminders(this, 'status')">
-                    <option value="">所有状态</option>
-                    <option value="pending" <?php echo ($_GET['status'] ?? '') === 'pending' ? 'selected' : ''; ?>>待发送</option>
-                    <option value="sent" <?php echo ($_GET['status'] ?? '') === 'sent' ? 'selected' : ''; ?>>已发送</option>
-                    <option value="read" <?php echo ($_GET['status'] ?? '') === 'read' ? 'selected' : ''; ?>>已读</option>
-                    <option value="done" <?php echo ($_GET['status'] ?? '') === 'done' ? 'selected' : ''; ?>>已完成</option>
-                    <option value="cancelled" <?php echo ($_GET['status'] ?? '') === 'cancelled' ? 'selected' : ''; ?>>已取消</option>
-                </select>
-
-                <select class="form-control" style="width: auto;" onchange="filterReminders(this, 'type')">
-                    <option value="">所有方式</option>
-                    <option value="email" <?php echo ($_GET['type'] ?? '') === 'email' ? 'selected' : ''; ?>>邮件</option>
-                    <option value="feishu" <?php echo ($_GET['type'] ?? '') === 'feishu' ? 'selected' : ''; ?>>飞书</option>
-                    <option value="wechat" <?php echo ($_GET['type'] ?? '') === 'wechat' ? 'selected' : ''; ?>>企业微信</option>
-                    <option value="site" <?php echo ($_GET['type'] ?? '') === 'site' ? 'selected' : ''; ?>>站内消息</option>
-                </select>
-            </div>
-        </div>
-    </div>
+<!-- 提醒方式筛选器（右上角浮动） -->
+<div class="reminder-type-filter">
+    <select class="form-control" onchange="filterReminders(this, 'type')">
+        <option value="">全部方式</option>
+        <option value="email" <?php echo ($_GET['type'] ?? '') === 'email' ? 'selected' : ''; ?>>📧 邮件</option>
+        <option value="feishu" <?php echo ($_GET['type'] ?? '') === 'feishu' ? 'selected' : ''; ?>>🔔 飞书</option>
+        <option value="wechat" <?php echo ($_GET['type'] ?? '') === 'wechat' ? 'selected' : ''; ?>>💬 企业微信</option>
+        <option value="site" <?php echo ($_GET['type'] ?? '') === 'site' ? 'selected' : ''; ?>>🖥️ 站内消息</option>
+    </select>
 </div>
 
-<!-- 分页和统计信息 -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted">
-                    <i class="fas fa-list"></i>
-                    共 <strong class="text-primary"><?php echo number_format($totalReminders); ?></strong> 条提醒
-                </span>
-                <?php if ($totalPages > 1): ?>
-                    <span class="text-muted">
-                        第 <strong><?php echo $page; ?></strong> 页，共 <strong><?php echo $totalPages; ?></strong> 页
-                    </span>
-                <?php endif; ?>
-            </div>
 
-            <?php if ($totalPages > 1): ?>
-                <!-- 每页显示数量选择 -->
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted">每页显示:</span>
-                    <select class="form-control" style="width: auto;" onchange="changePerPage(this.value)">
-                        <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10条</option>
-                        <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20条</option>
-                        <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50条</option>
-                        <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100条</option>
-                    </select>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
 
-<!-- 提醒统计概览 -->
-<div class="stats-grid mb-4">
+<!-- 可点击统计概览筛选 -->
+<div class="stats-overview mb-4">
     <?php
     // 计算当前页面的统计数据
     $statusCounts = [
@@ -147,60 +85,52 @@ $reminders = $dataStmt->fetchAll();
     }
 
     $activeReminders = $statusCounts['pending'] + $statusCounts['sent'];
+    $currentFilter = $_GET['status'] ?? '';
     ?>
 
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon primary">
-                <i class="fas fa-bell"></i>
+    <div class="stats-clickable">
+        <div class="stats-divided-content">
+            <div class="stat-item-divided <?php echo empty($currentFilter) ? 'active' : ''; ?>"
+                 onclick="filterByStatus('')">
+                <div class="stat-value-divided"><?php echo number_format($totalReminders); ?></div>
+                <div class="stat-label-divided">
+                    <i class="fas fa-bell stat-icon-divided text-primary"></i>
+                    全部提醒
+                </div>
             </div>
-        </div>
-        <div class="stat-value"><?php echo number_format($totalReminders); ?></div>
-        <div class="stat-label">总提醒数</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon warning">
-                <i class="fas fa-clock"></i>
+            <div class="stat-item-divided <?php echo $currentFilter === 'pending' ? 'active' : ''; ?>"
+                 onclick="filterByStatus('pending')">
+                <div class="stat-value-divided"><?php echo $statusCounts['pending']; ?></div>
+                <div class="stat-label-divided">
+                    <i class="fas fa-clock stat-icon-divided text-warning"></i>
+                    待发送
+                </div>
             </div>
-        </div>
-        <div class="stat-value"><?php echo $statusCounts['pending']; ?></div>
-        <div class="stat-label">待发送</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon success">
-                <i class="fas fa-check-circle"></i>
+            <div class="stat-item-divided <?php echo $currentFilter === 'done' ? 'active' : ''; ?>"
+                 onclick="filterByStatus('done')">
+                <div class="stat-value-divided"><?php echo $statusCounts['done']; ?></div>
+                <div class="stat-label-divided">
+                    <i class="fas fa-check-circle stat-icon-divided text-success"></i>
+                    已完成
+                </div>
             </div>
-        </div>
-        <div class="stat-value"><?php echo $statusCounts['done']; ?></div>
-        <div class="stat-label">已完成</div>
-    </div>
 
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon danger">
-                <i class="fas fa-exclamation-triangle"></i>
+            <div class="stat-item-divided <?php echo ($currentFilter === 'pending' || $currentFilter === 'sent') && $currentFilter !== '' ? 'active' : ''; ?>"
+                 onclick="filterByStatus('active')">
+                <div class="stat-value-divided"><?php echo $activeReminders; ?></div>
+                <div class="stat-label-divided">
+                    <i class="fas fa-exclamation-triangle stat-icon-divided text-danger"></i>
+                    需要关注
+                </div>
             </div>
         </div>
-        <div class="stat-value"><?php echo $activeReminders; ?></div>
-        <div class="stat-label">需要关注</div>
     </div>
 </div>
 
 <!-- 提醒列表 -->
 <div class="card">
-    <div class="card-header">
-        <h3 class="card-title">
-            <i class="fas fa-list"></i>
-            我的提醒列表
-            <?php if ($totalPages > 1): ?>
-                <small class="text-muted">(第 <?php echo $page; ?> 页)</small>
-            <?php endif; ?>
-        </h3>
-    </div>
     <div class="card-body p-0">
         <?php if (empty($reminders)): ?>
             <div class="empty-state">
@@ -504,39 +434,6 @@ $reminders = $dataStmt->fetchAll();
 </div>
 <?php endif; ?>
 
-<!-- 操作说明 -->
-<div class="card mt-4">
-    <div class="card-header">
-        <h3 class="card-title">
-            <i class="fas fa-lightbulb"></i>
-            操作说明
-        </h3>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <h5><i class="fas fa-bell text-warning"></i> 提醒状态说明</h5>
-                <ul class="list-unstyled">
-                    <li><span class="text-warning"><i class="fas fa-clock"></i> 待发送</span> - 等待系统发送</li>
-                    <li><span class="text-primary"><i class="fas fa-paper-plane"></i> 已发送</span> - 已发送给您</li>
-                    <li><span class="text-info"><i class="fas fa-eye"></i> 已读</span> - 您已查看</li>
-                    <li><span class="text-success"><i class="fas fa-check-circle"></i> 已完成</span> - 已处理完成</li>
-                    <li><span class="text-danger"><i class="fas fa-times-circle"></i> 已取消</span> - 已取消提醒</li>
-                </ul>
-            </div>
-            <div class="col-md-6">
-                <h5><i class="fas fa-cog text-primary"></i> 常用操作</h5>
-                <ul class="list-unstyled">
-                    <li><strong>已续费</strong> - 订阅已续费，自动更新到期时间</li>
-                    <li><strong>延迟提醒</strong> - 延迟3天后再次提醒</li>
-                    <li><strong>标记已读</strong> - 标记为已读但不取消</li>
-                    <li><strong>取消提醒</strong> - 完全取消此提醒</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?php
 // 构建分页URL的辅助函数
 function buildPaginationUrl($pageNum) {
@@ -599,13 +496,36 @@ function filterReminders(select, filterType) {
         url.searchParams.delete(filterType);
     }
     url.searchParams.delete('page'); // 筛选时重置到第一页
+
+    // 记录当前滚动位置
+    const currentScrollY = window.scrollY;
+    url.searchParams.set('scroll', currentScrollY);
+
     window.location = url;
 }
 
-function changePerPage(perPage) {
+// 按状态筛选的函数
+function filterByStatus(status) {
     const url = new URL(window.location);
-    url.searchParams.set('per_page', perPage);
-    url.searchParams.delete('page'); // 改变每页数量时重置到第一页
+
+    if (status === '' || status === 'active') {
+        // 特殊处理：如果是'active'，转换为pending,sent的组合筛选
+        if (status === 'active') {
+            // 这里可以根据需要调整逻辑，暂时设为pending
+            url.searchParams.set('status', 'pending');
+        } else {
+            url.searchParams.delete('status');
+        }
+    } else {
+        url.searchParams.set('status', status);
+    }
+
+    url.searchParams.delete('page'); // 筛选时重置到第一页
+
+    // 记录当前滚动位置
+    const currentScrollY = window.scrollY;
+    url.searchParams.set('scroll', currentScrollY);
+
     window.location = url;
 }
 
@@ -620,6 +540,11 @@ function jumpToPage(pageNum) {
 
     const url = new URL(window.location);
     url.searchParams.set('page', page);
+
+    // 记录当前滚动位置
+    const currentScrollY = window.scrollY;
+    url.searchParams.set('scroll', currentScrollY);
+
     window.location = url;
 }
 
@@ -663,12 +588,50 @@ document.addEventListener('DOMContentLoaded', function() {
         // 支持左右箭头键翻页
         if (e.target.tagName.toLowerCase() !== 'input') {
             if (e.key === 'ArrowLeft' && <?php echo $hasPrevPage ? 'true' : 'false'; ?>) {
-                window.location.href = '<?php echo buildPaginationUrl($page - 1); ?>';
+                navigateToPage('<?php echo buildPaginationUrl($page - 1); ?>');
             } else if (e.key === 'ArrowRight' && <?php echo $hasNextPage ? 'true' : 'false'; ?>) {
-                window.location.href = '<?php echo buildPaginationUrl($page + 1); ?>';
+                navigateToPage('<?php echo buildPaginationUrl($page + 1); ?>');
             }
         }
     });
+
+    // 优化分页导航 - 保持当前滚动位置
+    function navigateToPage(url) {
+        // 记录当前滚动位置
+        const currentScrollY = window.scrollY;
+
+        // 添加滚动位置到URL
+        const urlObj = new URL(url, window.location.origin);
+        urlObj.searchParams.set('scroll', currentScrollY);
+
+        window.location.href = urlObj.toString();
+    }
+
+    // 优化所有分页链接
+    document.querySelectorAll('.pagination .page-link').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigateToPage(this.href);
+        });
+    });
+
+    // 页面加载后恢复滚动位置
+    const urlParams = new URLSearchParams(window.location.search);
+    const scrollPosition = urlParams.get('scroll');
+    if (scrollPosition) {
+        // 延迟恢复滚动位置，确保页面完全加载
+        setTimeout(function() {
+            window.scrollTo({
+                top: parseInt(scrollPosition),
+                behavior: 'smooth'
+            });
+
+            // 清理URL中的scroll参数（可选）
+            const cleanUrl = new URL(window.location);
+            cleanUrl.searchParams.delete('scroll');
+            window.history.replaceState({}, document.title, cleanUrl.toString());
+        }, 100);
+    }
 
     // 自动刷新待发送提醒的倒计时
     setInterval(function() {
@@ -799,26 +762,6 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 0.375rem 0.75rem;
 }
 
-/* 分页信息样式 */
-.pagination-info {
-    background: var(--gray-50);
-    padding: 1rem;
-    border-radius: var(--border-radius);
-    margin-bottom: 1rem;
-}
-
-/* 快速跳转样式 */
-.page-jump input {
-    text-align: center;
-}
-
-/* 每页显示数量选择器 */
-.per-page-selector {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 /* 响应式优化 */
 @media (max-width: 768px) {
     .pagination {
@@ -908,89 +851,141 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 
-/* 加载状态 */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    backdrop-filter: blur(2px);
-}
-
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--gray-200);
-    border-top: 4px solid var(--primary-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* 数据表格增强 */
-.table-enhanced {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.table-enhanced th {
-    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
-    font-weight: 600;
-    color: var(--gray-700);
-    border-bottom: 2px solid var(--gray-200);
-    position: sticky;
-    top: 0;
+/* 提醒方式筛选器（右上角浮动） */
+.reminder-type-filter {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
     z-index: 10;
 }
 
-.table-enhanced tbody tr {
-    transition: var(--transition);
+.reminder-type-filter .form-control {
+    min-width: 120px;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    background: var(--white);
+    box-shadow: var(--shadow);
 }
 
-.table-enhanced tbody tr:hover {
-    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(59, 130, 246, 0.05) 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+/* 可点击统计卡片样式 */
+.stats-clickable {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    position: relative;
 }
 
-/* 批量操作栏增强 */
-.batch-actions {
-    background: var(--gray-50);
-    border-top: 2px solid var(--gray-200);
-    padding: 1rem 1.5rem;
+.stats-clickable .stats-divided-content {
+    display: flex;
 }
 
-.batch-actions .form-control,
-.batch-actions .btn {
-    height: 36px;
-}
-
-/* 统计卡片悬停效果 */
-.stat-card {
+.stats-clickable .stat-item-divided {
+    flex: 1;
+    padding: 1rem;
+    text-align: center;
+    border-right: 1px solid var(--gray-200);
     transition: var(--transition);
     cursor: pointer;
+    position: relative;
 }
 
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+.stats-clickable .stat-item-divided:last-child {
+    border-right: none;
 }
 
-.stat-card:hover .stat-icon {
-    transform: scale(1.1);
+.stats-clickable .stat-item-divided:hover {
+    background: var(--gray-50);
+    transform: translateY(-1px);
 }
 
-.stat-icon {
+.stats-clickable .stat-item-divided.active {
+    background: var(--primary-color);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.stats-clickable .stat-item-divided.active .stat-value-divided,
+.stats-clickable .stat-item-divided.active .stat-label-divided {
+    color: var(--white);
+}
+
+.stats-clickable .stat-item-divided.active .stat-icon-divided {
+    color: var(--white) !important;
+}
+
+.stats-clickable .stat-item-divided::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    background: var(--primary-color);
     transition: var(--transition);
+}
+
+.stats-clickable .stat-item-divided.active::after {
+    width: 80%;
+    background: var(--white);
+}
+
+/* 方案一：带分隔线的极简统计卡片 */
+.stats-overview {
+    margin-bottom: 1rem;
+}
+
+.stats-divided {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+}
+
+.stats-divided-content {
+    display: flex;
+}
+
+.stat-item-divided {
+    flex: 1;
+    padding: 1rem;
+    text-align: center;
+    border-right: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.stat-item-divided:last-child {
+    border-right: none;
+}
+
+.stat-item-divided:hover {
+    background: var(--gray-50);
+}
+
+.stat-value-divided {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.25rem;
+}
+
+.stat-label-divided {
+    color: var(--gray-500);
+    font-size: 0.7rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.stat-icon-divided {
+    font-size: 0.75rem;
 }
 </style>
