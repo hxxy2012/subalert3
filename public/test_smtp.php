@@ -5,7 +5,7 @@
 echo "🔧 精确SMTP客户端模拟测试\n";
 echo "============================\n\n";
 
-$testEmail = 'hx2@gmail.com';
+$testEmail = 'hxxy2012@gmail.com';
 echo "📧 测试邮箱: $testEmail\n\n";
 
 // 1. 加载配置
