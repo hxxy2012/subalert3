@@ -1,16 +1,17 @@
 <?php
-// 管理员端页脚 - layout/admin_footer.php
+// 优化后的管理员端页脚 - layout/admin_footer.php
 ?>
 
     </main>
 
-    <footer style="background: var(--gray-800); color: var(--white); padding: 1rem 0; margin-top: 2rem;">
+    <!-- 简化的页脚 - 移除大块蓝黑色背景
+    <footer class="admin-footer-minimal">
         <div class="container">
-            <div class="text-center">
-                <span>&copy; <?php echo date('Y'); ?> SubAlert 管理后台</span>
+            <div class="footer-content-minimal">
+                <span>&copy; <?php echo date('Y'); ?> SubAlert</span>
             </div>
         </div>
-    </footer>
+    </footer>-->
 
     <!-- 管理员专用功能脚本 -->
     <script>
@@ -130,5 +131,33 @@
             });
         }
     </script>
+
+    <!-- 新增的CSS样式，用于替代原有的大块蓝黑色页脚 -->
+    <style>
+    .admin-footer-minimal {
+        background: transparent;
+        border-top: 1px solid var(--gray-200);
+        padding: 1rem 0;
+        margin-top: 2rem;
+    }
+
+    .footer-content-minimal {
+        text-align: center;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    /* 响应式优化 */
+    @media (max-width: 768px) {
+        .admin-footer-minimal {
+            padding: 0.75rem 0;
+            margin-top: 1.5rem;
+        }
+
+        .footer-content-minimal {
+            font-size: 0.8rem;
+        }
+    }
+    </style>
 </body>
 </html>
