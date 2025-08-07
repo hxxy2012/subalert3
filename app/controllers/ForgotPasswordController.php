@@ -6,260 +6,6 @@ use App\Models\DB;
 class ForgotPasswordController
 {
     /**
-     * Enhanced SMTP Client for sending emails
-     * Based on the working SMTP implementation
-     */
-    private function createSMTPClient($smtpConfig) {
-        return new class($smtpConfig) {
-            private $socket;
-            private $host;
-            private $port;
-            private $username;
-            private $password;
-            private $timeout = 30;
-            
-            public function __construct($config) {
-                $this->host = $config['host'];
-                $this->port = $config['port'];
-                $this->username = $config['user'];
-                $this->password = $config['pass'];
-            }
-            
-            public function connect() {
-                $context = stream_context_create([
-                    'ssl' => [
-                        'verify_peer' => false,
-                        'verify_peer_name' => false,
-                        'allow_self_signed' => true,
-                        'crypto_method' => STREAM_CRYPTO_METHOD_TLS_CLIENT,
-                    ]
-                ]);
-                
-                $this->socket = @stream_socket_client(
-                    "ssl://{$this->host}:{$this->port}",
-                    $errno, $errstr, $this->timeout,
-                    STREAM_CLIENT_CONNECT, $context
-                );
-                
-                if (!$this->socket) {
-                    throw new \Exception("SMTP连接失败: [$errno] $errstr");
-                }
-                
-                stream_set_timeout($this->socket, $this->timeout);
-                
-                $response = $this->readResponse();
-                if (!$this->isResponseOK($response, '220')) {
-                    throw new \Exception("SMTP服务器欢迎失败: $response");
-                }
-                
-                return true;
-            }
-            
-            public function ehlo($hostname = 'localhost') {
-                $this->sendCommand("EHLO $hostname");
-                $response = $this->readMultilineResponse();
-                
-                if (!$this->isResponseOK($response, '250')) {
-                    throw new \Exception("EHLO失败: $response");
-                }
-                
-                return $response;
-            }
-            
-            public function authenticate() {
-                $this->sendCommand("AUTH LOGIN");
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '334')) {
-                    throw new \Exception("AUTH LOGIN失败: $response");
-                }
-                
-                $encodedUser = base64_encode($this->username);
-                $this->sendCommand($encodedUser);
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '334')) {
-                    throw new \Exception("用户名认证失败: $response");
-                }
-                
-                $encodedPass = base64_encode($this->password);
-                $this->sendCommand($encodedPass);
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '235')) {
-                    throw new \Exception("密码认证失败: $response");
-                }
-                
-                return true;
-            }
-            
-            public function sendMail($from, $to, $subject, $body) {
-                $this->sendCommand("MAIL FROM: <$from>");
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '250')) {
-                    throw new \Exception("MAIL FROM失败: $response");
-                }
-                
-                $this->sendCommand("RCPT TO: <$to>");
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '250')) {
-                    throw new \Exception("RCPT TO失败: $response");
-                }
-                
-                $this->sendCommand("DATA");
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '354')) {
-                    throw new \Exception("DATA失败: $response");
-                }
-                
-                $timestamp = date('r');
-                $messageId = '<' . uniqid() . '@' . $this->host . '>';
-                
-                $email = "From: SubAlert <$from>\r\n";
-                $email .= "To: <$to>\r\n";
-                $email .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
-                $email .= "Date: $timestamp\r\n";
-                $email .= "Message-ID: $messageId\r\n";
-                $email .= "MIME-Version: 1.0\r\n";
-                $email .= "Content-Type: text/html; charset=utf-8\r\n";
-                $email .= "Content-Transfer-Encoding: 8bit\r\n";
-                $email .= "\r\n";
-                $email .= $body;
-                $email .= "\r\n.\r\n";
-                
-                fwrite($this->socket, $email);
-                fflush($this->socket);
-                
-                $response = $this->readResponse();
-                
-                if (!$this->isResponseOK($response, '250')) {
-                    throw new \Exception("邮件发送失败: $response");
-                }
-                
-                return true;
-            }
-            
-            public function quit() {
-                if ($this->socket) {
-                    $this->sendCommand("QUIT");
-                    $this->readResponse();
-                    fclose($this->socket);
-                }
-            }
-            
-            private function sendCommand($command) {
-                fwrite($this->socket, $command . "\r\n");
-                fflush($this->socket);
-            }
-            
-            private function readResponse() {
-                $response = fgets($this->socket, 512);
-                if ($response === false) {
-                    throw new \Exception("读取服务器响应失败");
-                }
-                return trim($response);
-            }
-            
-            private function readMultilineResponse() {
-                $response = '';
-                while (true) {
-                    $line = fgets($this->socket, 512);
-                    if ($line === false) break;
-                    
-                    $response .= $line;
-                    
-                    if (strlen($line) >= 4 && $line[3] === ' ') {
-                        break;
-                    }
-                }
-                return trim($response);
-            }
-            
-            private function isResponseOK($response, $expectedCode) {
-                return strpos($response, $expectedCode) === 0;
-            }
-        };
-    }
-
-    /**
-     * Create HTML email template for password reset
-     */
-    private function createPasswordResetEmailTemplate($resetLink, $siteName = 'SubAlert') {
-        return '<!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head><body>
-<div style="font-family:Arial,sans-serif;max-width:600px;margin:20px auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
-    <div style="text-align:center;margin-bottom:30px;">
-        <h1 style="color:#3b82f6;margin-bottom:10px;">🔐 密码重置</h1>
-        <p style="color:#666;font-size:16px;">您申请了重置 ' . htmlspecialchars($siteName) . ' 账户密码</p>
-    </div>
-    
-    <div style="background:#f8f9fa;border:1px solid #e9ecef;padding:20px;margin:20px 0;border-radius:6px;">
-        <h2 style="color:#333;margin-bottom:15px;">📋 重置说明</h2>
-        <p style="color:#666;line-height:1.6;margin-bottom:20px;">
-            我们收到了您的密码重置请求。请点击下方按钮重置您的密码：
-        </p>
-        
-        <div style="text-align:center;margin:30px 0;">
-            <a href="' . htmlspecialchars($resetLink) . '" 
-               style="display:inline-block;padding:15px 30px;background:#3b82f6;color:white;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
-                🔑 重置密码
-            </a>
-        </div>
-        
-        <p style="color:#666;font-size:14px;line-height:1.6;">
-            如果上方按钮无法点击，请复制以下链接到浏览器地址栏：<br>
-            <span style="background:#f1f5f9;padding:8px;border-radius:4px;word-break:break-all;font-family:monospace;font-size:12px;">' . htmlspecialchars($resetLink) . '</span>
-        </p>
-    </div>
-    
-    <div style="background:#fff3cd;border:1px solid #ffeaa7;padding:15px;margin:20px 0;border-radius:6px;">
-        <h3 style="color:#856404;margin-bottom:10px;">⚠️ 安全提示</h3>
-        <ul style="color:#856404;margin:0;padding-left:20px;font-size:14px;">
-            <li>此链接有效期为 <strong>1小时</strong></li>
-            <li>链接只能使用一次</li>
-            <li>如果您没有申请密码重置，请忽略此邮件</li>
-            <li>请不要将此链接分享给任何人</li>
-        </ul>
-    </div>
-    
-    <div style="text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid #eee;">
-        <p style="color:#999;font-size:12px;">
-            此邮件由 ' . htmlspecialchars($siteName) . ' 自动发送<br>
-            如有疑问，请联系系统管理员
-        </p>
-    </div>
-</div>
-</body></html>';
-    }
-
-    /**
-     * Send password reset email via SMTP
-     */
-    private function sendPasswordResetEmail($email, $resetLink, $smtpConfig, $siteName) {
-        try {
-            $smtp = $this->createSMTPClient($smtpConfig);
-            
-            $smtp->connect();
-            $smtp->ehlo($_SERVER['HTTP_HOST'] ?? 'localhost');
-            $smtp->authenticate();
-            
-            $subject = "[{$siteName}] 密码重置验证";
-            $body = $this->createPasswordResetEmailTemplate($resetLink, $siteName);
-            
-            $smtp->sendMail($smtpConfig['user'], $email, $subject, $body);
-            $smtp->quit();
-            
-            return true;
-        } catch (\Exception $e) {
-            error_log("Password reset email send failed: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Handle forgot password form submission and token creation.
      */
     public function forgot(): void
@@ -296,7 +42,7 @@ class ForgotPasswordController
             }
             
             // Load SMTP configuration
-            $stmt = $pdo->query('SELECT `key`, `value` FROM settings WHERE `key` IN ("smtp_host", "smtp_port", "smtp_user", "smtp_pass", "site_name")');
+            $stmt = $pdo->query('SELECT `key`, `value` FROM settings WHERE `key` IN ("smtp_host", "smtp_port", "smtp_user", "smtp_pass", "site_name", "default_from_email", "ses_from_email")');
             $settings = [];
             while ($row = $stmt->fetch()) {
                 $settings[$row['key']] = $row['value'];
@@ -322,6 +68,9 @@ class ForgotPasswordController
             
             $siteName = $settings['site_name'] ?? 'SubAlert';
             
+            // 获取发件人邮箱
+            $fromEmail = $this->getFromEmail($smtpConfig, $settings);
+            
             // Generate token
             $token = bin2hex(random_bytes(32));
             
@@ -338,7 +87,10 @@ class ForgotPasswordController
             $resetLink = $protocol . '://' . $host . '/index.php?r=reset-password&token=' . $token;
             
             // Send email
-            $emailSent = $this->sendPasswordResetEmail($email, $resetLink, $smtpConfig, $siteName);
+            $subject = "[{$siteName}] 密码重置验证";
+            $body = $this->createPasswordResetEmailTemplate($resetLink, $siteName);
+            
+            $emailSent = $this->sendPasswordResetEmail($email, $subject, $body, $smtpConfig, $fromEmail, $siteName);
             
             if ($emailSent) {
                 // 成功发送邮件后的消息 - 不包含任何敏感信息
@@ -439,4 +191,102 @@ class ForgotPasswordController
             view('auth/reset_password', ['token' => $token]);
         }
     }
+    
+    /**
+     * 获取合适的发件人邮箱地址
+     */
+    private function getFromEmail($smtpConfig, $settings) {
+        $isAmazonSES = strpos($smtpConfig['host'], 'amazonaws.com') !== false;
+        
+        if ($isAmazonSES) {
+            // Amazon SES：优先使用专用发件人邮箱
+            if (!empty($settings['ses_from_email'])) {
+                return $settings['ses_from_email'];
+            }
+        }
+        
+        // 使用默认发件人邮箱
+        if (!empty($settings['default_from_email'])) {
+            return $settings['default_from_email'];
+        }
+        
+        // 最后回退：根据服务类型决定
+        if ($isAmazonSES) {
+            // Amazon SES需要真实邮箱，构造一个基于域名的地址
+            $domain = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            return "noreply@$domain";
+        } else {
+            // 传统SMTP可以使用用户名
+            return $smtpConfig['user'];
+        }
+    }
+
+    /**
+     * Send password reset email via enhanced SMTP
+     */
+    private function sendPasswordResetEmail($email, $subject, $body, $smtpConfig, $fromEmail, $siteName) {
+        try {
+            // 确保包含新的邮件发送函数
+            if (!function_exists('sendEmailSMTP')) {
+                require_once __DIR__ . '/../helpers/functions.php';
+            }
+            
+            return sendEmailSMTP($email, $subject, $body, $smtpConfig, $fromEmail, $siteName);
+        } catch (\Exception $e) {
+            error_log("Password reset email send failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Create HTML email template for password reset
+     */
+    private function createPasswordResetEmailTemplate($resetLink, $siteName = 'SubAlert') {
+        return '<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head><body>
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:20px auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
+    <div style="text-align:center;margin-bottom:30px;">
+        <h1 style="color:#3b82f6;margin-bottom:10px;">🔐 密码重置</h1>
+        <p style="color:#666;font-size:16px;">您申请了重置 ' . htmlspecialchars($siteName) . ' 账户密码</p>
+    </div>
+    
+    <div style="background:#f8f9fa;border:1px solid #e9ecef;padding:20px;margin:20px 0;border-radius:6px;">
+        <h2 style="color:#333;margin-bottom:15px;">📋 重置说明</h2>
+        <p style="color:#666;line-height:1.6;margin-bottom:20px;">
+            我们收到了您的密码重置请求。请点击下方按钮重置您的密码：
+        </p>
+        
+        <div style="text-align:center;margin:30px 0;">
+            <a href="' . htmlspecialchars($resetLink) . '" 
+               style="display:inline-block;padding:15px 30px;background:#3b82f6;color:white;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
+                🔑 重置密码
+            </a>
+        </div>
+        
+        <p style="color:#666;font-size:14px;line-height:1.6;">
+            如果上方按钮无法点击，请复制以下链接到浏览器地址栏：<br>
+            <span style="background:#f1f5f9;padding:8px;border-radius:4px;word-break:break-all;font-family:monospace;font-size:12px;">' . htmlspecialchars($resetLink) . '</span>
+        </p>
+    </div>
+    
+    <div style="background:#fff3cd;border:1px solid #ffeaa7;padding:15px;margin:20px 0;border-radius:6px;">
+        <h3 style="color:#856404;margin-bottom:10px;">⚠️ 安全提示</h3>
+        <ul style="color:#856404;margin:0;padding-left:20px;font-size:14px;">
+            <li>此链接有效期为 <strong>1小时</strong></li>
+            <li>链接只能使用一次</li>
+            <li>如果您没有申请密码重置，请忽略此邮件</li>
+            <li>请不要将此链接分享给任何人</li>
+        </ul>
+    </div>
+    
+    <div style="text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid #eee;">
+        <p style="color:#999;font-size:12px;">
+            此邮件由 ' . htmlspecialchars($siteName) . ' 自动发送<br>
+            如有疑问，请联系系统管理员
+        </p>
+    </div>
+</div>
+</body></html>';
+    }
 }
+?>

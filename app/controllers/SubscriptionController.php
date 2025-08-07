@@ -5,6 +5,7 @@ use App\Models\DB;
 
 /**
  * Manages CRUD operations for user subscriptions.
+ * 优化版本：支持在创建订阅时同时创建提醒
  */
 class SubscriptionController
 {
@@ -61,7 +62,7 @@ class SubscriptionController
     }
 
     /**
-     * Add new subscription.
+     * Add new subscription with optional reminder creation.
      */
     public function create(): void
     {
@@ -74,23 +75,81 @@ class SubscriptionController
             $expire = trim($_POST['expire_at'] ?? '');
             $auto   = isset($_POST['auto_renew']) ? 1 : 0;
             $note   = trim($_POST['note'] ?? '');
+            
+            // 新增：提醒相关参数
+            $enableReminder = isset($_POST['enable_reminder']) ? 1 : 0;
+            $remindDays = intval($_POST['remind_days'] ?? 3);
+            $remindType = trim($_POST['remind_type'] ?? 'email');
+            
             // Validation
             if ($name === '' || $type === '' || $price <= 0 || $cycle === '' || $expire === '') {
                 flash('error', '请填写所有必填字段并保证价格大于0');
                 view('subscriptions/create');
                 return;
             }
+            
             // Convert expire date
             $expireDate = date('Y-m-d', strtotime($expire));
-            // Insert
-            $pdo = DB::getConnection();
-            $stmt = $pdo->prepare('INSERT INTO subscriptions (user_id, name, type, price, cycle, expire_at, auto_renew, status, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())');
-            $status = 'active';
-            $stmt->execute([$user['id'], $name, $type, $price, $cycle, $expireDate, $auto, $status, $note]);
-            flash('success', '订阅添加成功');
-            redirect('/?r=subscriptions');
+            
+            try {
+                // 开始事务
+                $pdo = DB::getConnection();
+                $pdo->beginTransaction();
+                
+                // Insert subscription
+                $stmt = $pdo->prepare('INSERT INTO subscriptions (user_id, name, type, price, cycle, expire_at, auto_renew, status, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())');
+                $status = 'active';
+                $stmt->execute([$user['id'], $name, $type, $price, $cycle, $expireDate, $auto, $status, $note]);
+                $subscriptionId = $pdo->lastInsertId();
+                
+                // 如果启用了提醒，同时创建提醒
+                if ($enableReminder && $subscriptionId) {
+                    // Calculate remind_at
+                    $remindAt = date('Y-m-d H:i:s', strtotime($expireDate . ' -' . $remindDays . ' day'));
+                    
+                    // Insert reminder
+                    $stmt = $pdo->prepare('INSERT INTO reminders (user_id, subscription_id, remind_days, remind_type, remind_at, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())');
+                    $stmt->execute([$user['id'], $subscriptionId, $remindDays, $remindType, $remindAt, 'pending']);
+                }
+                
+                // 提交事务
+                $pdo->commit();
+                
+                // 成功消息
+                if ($enableReminder) {
+                    $remindDate = date('Y年m月d日', strtotime($remindAt));
+                    flash('success', "订阅「{$name}」添加成功！系统将在 {$remindDate} 发送提醒通知。");
+                } else {
+                    flash('success', "订阅「{$name}」添加成功！");
+                }
+                
+                redirect('/?r=subscriptions');
+                
+            } catch (Exception $e) {
+                // 回滚事务
+                $pdo->rollBack();
+                flash('error', '订阅创建失败，请重试');
+                view('subscriptions/create');
+                return;
+            }
+            
         } else {
-            view('subscriptions/create');
+            // Load user default settings for reminder
+            $user = current_user();
+            $pdo = DB::getConnection();
+            $settings = [];
+            $setStmt = $pdo->prepare('SELECT setting_key, setting_value FROM user_settings WHERE user_id = ?');
+            $setStmt->execute([$user['id']]);
+            while ($row = $setStmt->fetch()) {
+                $settings[$row['setting_key']] = $row['setting_value'];
+            }
+            $defaultDays = $settings['default_remind_days'] ?? 3;
+            $defaultType = $settings['default_remind_type'] ?? 'email';
+            
+            view('subscriptions/create', [
+                'defaultDays' => $defaultDays,
+                'defaultType' => $defaultType
+            ]);
         }
     }
 

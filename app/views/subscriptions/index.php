@@ -1,7 +1,7 @@
 <?php
 // 分页参数
 $page = max(1, intval($_GET['page'] ?? 1));
-$perPage = 3; // 每页显示10条
+$perPage = 3; // 每页显示10条 (从3改回10)
 $offset = ($page - 1) * $perPage;
 
 // 构建查询条件
@@ -67,11 +67,11 @@ $subscriptions = $dataStmt->fetchAll();
             <div class="d-flex gap-2 flex-wrap">
                 <select class="form-control" style="width: auto;" onchange="filterSubscriptions(this)">
                     <option value="">所有类型</option>
-                    <option value="video" <?php echo ($_GET['type'] ?? '') === 'video' ? 'selected' : ''; ?>>视频</option>
-                    <option value="music" <?php echo ($_GET['type'] ?? '') === 'music' ? 'selected' : ''; ?>>音乐</option>
-                    <option value="software" <?php echo ($_GET['type'] ?? '') === 'software' ? 'selected' : ''; ?>>软件</option>
-                    <option value="communication" <?php echo ($_GET['type'] ?? '') === 'communication' ? 'selected' : ''; ?>>通讯</option>
-                    <option value="other" <?php echo ($_GET['type'] ?? '') === 'other' ? 'selected' : ''; ?>>其他</option>
+                    <option value="video" <?php echo ($_GET['type'] ?? '') === 'video' ? 'selected' : ''; ?>>📺 视频</option>
+                    <option value="music" <?php echo ($_GET['type'] ?? '') === 'music' ? 'selected' : ''; ?>>🎵 音乐</option>
+                    <option value="software" <?php echo ($_GET['type'] ?? '') === 'software' ? 'selected' : ''; ?>>💻 软件</option>
+                    <option value="communication" <?php echo ($_GET['type'] ?? '') === 'communication' ? 'selected' : ''; ?>>💬 通讯</option>
+                    <option value="other" <?php echo ($_GET['type'] ?? '') === 'other' ? 'selected' : ''; ?>>📦 其他</option>
                 </select>
 
                 <select class="form-control" style="width: auto;" onchange="filterStatus(this)">
@@ -82,38 +82,6 @@ $subscriptions = $dataStmt->fetchAll();
                     <option value="expired" <?php echo ($_GET['status'] ?? '') === 'expired' ? 'selected' : ''; ?>>已过期</option>
                 </select>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- 分页和统计信息 -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted">
-                    <i class="fas fa-list"></i>
-                    共 <strong class="text-primary"><?php echo number_format($totalSubscriptions); ?></strong> 个订阅
-                </span>
-                <?php if ($totalPages > 1): ?>
-                    <span class="text-muted">
-                        第 <strong><?php echo $page; ?></strong> 页，共 <strong><?php echo $totalPages; ?></strong> 页
-                    </span>
-                <?php endif; ?>
-            </div>
-
-            <?php if ($totalPages > 1): ?>
-                <!-- 每页显示数量选择 -->
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted">每页显示:</span>
-                    <select class="form-control" style="width: auto;" onchange="changePerPage(this.value)">
-                        <option value="10" <?php echo $perPage === 10 ? 'selected' : ''; ?>>10条</option>
-                        <option value="20" <?php echo $perPage === 20 ? 'selected' : ''; ?>>20条</option>
-                        <option value="50" <?php echo $perPage === 50 ? 'selected' : ''; ?>>50条</option>
-                        <option value="100" <?php echo $perPage === 100 ? 'selected' : ''; ?>>100条</option>
-                    </select>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -335,23 +303,16 @@ $subscriptions = $dataStmt->fetchAll();
 
 <!-- 分页导航 -->
 <?php if ($totalPages > 1): ?>
-<div class="card mt-4">
+<div class="card mt-4" id="paginationCard">
     <div class="card-body">
         <nav aria-label="订阅分页">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- 页面信息 -->
-                <div class="text-muted">
-                    显示第 <strong><?php echo $offset + 1; ?></strong> 到
-                    <strong><?php echo min($offset + $perPage, $totalSubscriptions); ?></strong> 条，
-                    共 <strong><?php echo number_format($totalSubscriptions); ?></strong> 条记录
-                </div>
-
+            <div class="d-flex justify-content-center">
                 <!-- 分页按钮 -->
                 <ul class="pagination mb-0">
                     <!-- 首页 -->
                     <?php if ($page > 2): ?>
                         <li class="page-item">
-                            <a class="page-link" href="<?php echo buildPaginationUrl(1); ?>">
+                            <a class="page-link" href="<?php echo buildPaginationUrl(1); ?>" data-page="1">
                                 <i class="fas fa-angle-double-left"></i>
                                 首页
                             </a>
@@ -361,7 +322,7 @@ $subscriptions = $dataStmt->fetchAll();
                     <!-- 上一页 -->
                     <?php if ($hasPrevPage): ?>
                         <li class="page-item">
-                            <a class="page-link" href="<?php echo buildPaginationUrl($page - 1); ?>">
+                            <a class="page-link" href="<?php echo buildPaginationUrl($page - 1); ?>" data-page="<?php echo $page - 1; ?>">
                                 <i class="fas fa-angle-left"></i>
                                 上一页
                             </a>
@@ -376,7 +337,7 @@ $subscriptions = $dataStmt->fetchAll();
                     for ($i = $startPage; $i <= $endPage; $i++):
                     ?>
                         <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                            <a class="page-link" href="<?php echo buildPaginationUrl($i); ?>">
+                            <a class="page-link" href="<?php echo buildPaginationUrl($i); ?>" data-page="<?php echo $i; ?>">
                                 <?php echo $i; ?>
                             </a>
                         </li>
@@ -385,7 +346,7 @@ $subscriptions = $dataStmt->fetchAll();
                     <!-- 下一页 -->
                     <?php if ($hasNextPage): ?>
                         <li class="page-item">
-                            <a class="page-link" href="<?php echo buildPaginationUrl($page + 1); ?>">
+                            <a class="page-link" href="<?php echo buildPaginationUrl($page + 1); ?>" data-page="<?php echo $page + 1; ?>">
                                 下一页
                                 <i class="fas fa-angle-right"></i>
                             </a>
@@ -395,28 +356,13 @@ $subscriptions = $dataStmt->fetchAll();
                     <!-- 末页 -->
                     <?php if ($page < $totalPages - 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="<?php echo buildPaginationUrl($totalPages); ?>">
+                            <a class="page-link" href="<?php echo buildPaginationUrl($totalPages); ?>" data-page="<?php echo $totalPages; ?>">
                                 末页
                                 <i class="fas fa-angle-double-right"></i>
                             </a>
                         </li>
                     <?php endif; ?>
                 </ul>
-
-                <!-- 快速跳转 -->
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted">跳转到:</span>
-                    <input type="number"
-                           class="form-control"
-                           style="width: 80px;"
-                           min="1"
-                           max="<?php echo $totalPages; ?>"
-                           value="<?php echo $page; ?>"
-                           onkeypress="if(event.key==='Enter') jumpToPage(this.value)">
-                    <button class="btn btn-outline-primary btn-sm" onclick="jumpToPage(document.querySelector('input[type=number]').value)">
-                        跳转
-                    </button>
-                </div>
             </div>
         </nav>
     </div>
@@ -493,27 +439,6 @@ function filterStatus(select) {
     window.location = url;
 }
 
-function changePerPage(perPage) {
-    const url = new URL(window.location);
-    url.searchParams.set('per_page', perPage);
-    url.searchParams.delete('page'); // 改变每页数量时重置到第一页
-    window.location = url;
-}
-
-function jumpToPage(pageNum) {
-    const page = parseInt(pageNum);
-    const totalPages = <?php echo $totalPages; ?>;
-
-    if (isNaN(page) || page < 1 || page > totalPages) {
-        alert(`请输入1到${totalPages}之间的页码`);
-        return;
-    }
-
-    const url = new URL(window.location);
-    url.searchParams.set('page', page);
-    window.location = url;
-}
-
 // 监听复选框变化
 document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('input[name="ids[]"]');
@@ -522,18 +447,223 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     updateSelectedCount();
 
+    // 增强分页体验 - 保持滚动位置
+    initPaginationScrollPreservation();
+
     // 键盘导航支持
     document.addEventListener('keydown', function(e) {
         // 支持左右箭头键翻页
-        if (e.target.tagName.toLowerCase() !== 'input') {
+        if (e.target.tagName.toLowerCase() !== 'input' && !e.ctrlKey && !e.altKey) {
             if (e.key === 'ArrowLeft' && <?php echo $hasPrevPage ? 'true' : 'false'; ?>) {
-                window.location.href = '<?php echo buildPaginationUrl($page - 1); ?>';
+                e.preventDefault();
+                navigateToPageWithScroll('<?php echo buildPaginationUrl($page - 1); ?>');
             } else if (e.key === 'ArrowRight' && <?php echo $hasNextPage ? 'true' : 'false'; ?>) {
-                window.location.href = '<?php echo buildPaginationUrl($page + 1); ?>';
+                e.preventDefault();
+                navigateToPageWithScroll('<?php echo buildPaginationUrl($page + 1); ?>');
             }
         }
     });
 });
+
+/**
+ * 初始化分页滚动位置保持功能
+ */
+function initPaginationScrollPreservation() {
+    // 处理所有分页链接
+    const paginationLinks = document.querySelectorAll('.pagination .page-link');
+    paginationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            navigateToPageWithScroll(this.href);
+        });
+    });
+
+    // 页面加载后恢复滚动位置
+    restoreScrollPosition();
+}
+
+/**
+ * 带滚动位置保持的页面导航
+ */
+function navigateToPageWithScroll(url) {
+    // 记录当前滚动位置
+    saveCurrentScrollPosition();
+    
+    // 显示加载状态
+    showPageLoadingState();
+    
+    // 导航到新页面
+    window.location.href = url;
+}
+
+/**
+ * 保存当前滚动位置
+ */
+function saveCurrentScrollPosition() {
+    const scrollY = window.scrollY;
+    const timestamp = Date.now();
+    
+    // 保存到sessionStorage，5分钟内有效
+    const scrollData = {
+        position: scrollY,
+        timestamp: timestamp,
+        page: <?php echo $page; ?>,
+        path: window.location.pathname + window.location.search.replace(/[&?]scroll_pos=\d+/, '')
+    };
+    
+    sessionStorage.setItem('subscriptions_scroll_data', JSON.stringify(scrollData));
+    
+    // 同时添加到URL参数作为备选方案
+    const url = new URL(window.location);
+    url.searchParams.set('scroll_pos', scrollY);
+    
+    // 静默更新URL，不触发页面刷新
+    if (history.replaceState) {
+        history.replaceState(null, '', url.toString());
+    }
+}
+
+/**
+ * 恢复滚动位置
+ */
+function restoreScrollPosition() {
+    // 方案1：从sessionStorage恢复
+    try {
+        const savedData = sessionStorage.getItem('subscriptions_scroll_data');
+        if (savedData) {
+            const scrollData = JSON.parse(savedData);
+            const now = Date.now();
+            
+            // 检查数据是否在5分钟内且路径匹配
+            if (now - scrollData.timestamp < 300000) { // 5分钟
+                const currentPath = window.location.pathname + window.location.search.replace(/[&?]scroll_pos=\d+/, '');
+                const savedPath = scrollData.path;
+                
+                // 如果是相邻页面，恢复滚动位置
+                if (shouldRestoreScroll(currentPath, savedPath)) {
+                    smoothScrollToPosition(scrollData.position);
+                    return;
+                }
+            }
+        }
+    } catch (e) {
+        console.log('从sessionStorage恢复滚动位置失败:', e);
+    }
+    
+    // 方案2：从URL参数恢复
+    const urlParams = new URLSearchParams(window.location.search);
+    const scrollPos = urlParams.get('scroll_pos');
+    if (scrollPos) {
+        const position = parseInt(scrollPos);
+        if (!isNaN(position) && position > 0) {
+            smoothScrollToPosition(position);
+            
+            // 清理URL参数
+            urlParams.delete('scroll_pos');
+            const cleanUrl = window.location.pathname + 
+                           (urlParams.toString() ? '?' + urlParams.toString() : '');
+            if (history.replaceState) {
+                history.replaceState(null, '', cleanUrl);
+            }
+        }
+    }
+}
+
+/**
+ * 判断是否应该恢复滚动位置
+ */
+function shouldRestoreScroll(currentPath, savedPath) {
+    // 移除页码参数进行比较
+    const cleanCurrent = currentPath.replace(/[&?]page=\d+/, '');
+    const cleanSaved = savedPath.replace(/[&?]page=\d+/, '');
+    
+    // 如果基础路径相同，说明是在同一个列表的不同页面间切换
+    return cleanCurrent === cleanSaved;
+}
+
+/**
+ * 平滑滚动到指定位置
+ */
+function smoothScrollToPosition(position) {
+    // 延迟执行，确保页面内容已加载
+    setTimeout(() => {
+        // 首先尝试使用现代浏览器的平滑滚动
+        if ('scrollBehavior' in document.documentElement.style) {
+            window.scrollTo({
+                top: position,
+                left: 0,
+                behavior: 'smooth'
+            });
+        } else {
+            // 降级处理：直接跳转
+            window.scrollTo(0, position);
+        }
+        
+        // 添加视觉反馈
+        highlightContentArea();
+    }, 100);
+}
+
+/**
+ * 显示页面加载状态
+ */
+function showPageLoadingState() {
+    // 给分页按钮添加加载状态
+    const paginationCard = document.getElementById('paginationCard');
+    if (paginationCard) {
+        paginationCard.style.opacity = '0.6';
+        paginationCard.style.pointerEvents = 'none';
+    }
+    
+    // 给表格添加加载状态
+    const tableContainer = document.querySelector('.table-responsive');
+    if (tableContainer) {
+        tableContainer.style.opacity = '0.8';
+    }
+}
+
+/**
+ * 高亮内容区域，提供视觉反馈
+ */
+function highlightContentArea() {
+    const tableContainer = document.querySelector('.table-responsive');
+    if (tableContainer) {
+        // 添加高亮效果
+        tableContainer.style.transition = 'box-shadow 0.3s ease';
+        tableContainer.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.3)';
+        
+        // 2秒后移除高亮
+        setTimeout(() => {
+            tableContainer.style.boxShadow = '';
+        }, 2000);
+    }
+}
+
+/**
+ * 清理过期的滚动位置数据
+ */
+function cleanupScrollData() {
+    try {
+        const savedData = sessionStorage.getItem('subscriptions_scroll_data');
+        if (savedData) {
+            const scrollData = JSON.parse(savedData);
+            const now = Date.now();
+            
+            // 如果数据超过5分钟，清理它
+            if (now - scrollData.timestamp > 300000) {
+                sessionStorage.removeItem('subscriptions_scroll_data');
+            }
+        }
+    } catch (e) {
+        sessionStorage.removeItem('subscriptions_scroll_data');
+    }
+}
+
+// 页面卸载时清理数据
+window.addEventListener('beforeunload', cleanupScrollData);
+
+// 定期清理过期数据
+setInterval(cleanupScrollData, 60000); // 每分钟检查一次
 </script>
 
 <style>
@@ -619,21 +749,6 @@ document.addEventListener('DOMContentLoaded', function() {
         width: 100%;
         font-size: 0.75rem;
     }
-
-    /* 分页控制在移动端的优化 */
-    .card-body nav > div {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-    }
-
-    .card-body nav .pagination {
-        justify-content: center;
-    }
-
-    .card-body nav .d-flex:last-child {
-        justify-content: center;
-    }
 }
 
 @media (max-width: 480px) {
@@ -644,11 +759,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /* 进一步简化分页显示 */
     .pagination .page-item:not(.active):not(:first-child):not(:last-child) {
-        display: none;
-    }
-
-    /* 只显示：首页、上一页、当前页、下一页、末页 */
-    .pagination .page-item.active ~ .page-item:not(:last-child) {
         display: none;
     }
 }

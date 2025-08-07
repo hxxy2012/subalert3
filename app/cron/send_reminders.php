@@ -1,222 +1,10 @@
 <?php
-// Script to send reminders (improved with proper SMTP support)
+// Script to send reminders (improved with Amazon SES and traditional SMTP support)
 
 require __DIR__ . '/../../app/models/DB.php';
+require __DIR__ . '/../../app/helpers/functions.php';
 
 use App\Models\DB;
-
-/**
- * Enhanced SMTP Client for sending emails
- * Based on the working precise_smtp.php implementation
- */
-class SMTPClient {
-    private $socket;
-    private $host;
-    private $port;
-    private $username;
-    private $password;
-    private $timeout = 30;
-    
-    public function __construct($host, $port, $username, $password) {
-        $this->host = $host;
-        $this->port = $port;
-        $this->username = $username;
-        $this->password = $password;
-    }
-    
-    public function connect() {
-        // Create SSL context
-        $context = stream_context_create([
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-                'allow_self_signed' => true,
-                'crypto_method' => STREAM_CRYPTO_METHOD_TLS_CLIENT,
-            ]
-        ]);
-        
-        $this->socket = @stream_socket_client(
-            "ssl://{$this->host}:{$this->port}",
-            $errno, $errstr, $this->timeout,
-            STREAM_CLIENT_CONNECT, $context
-        );
-        
-        if (!$this->socket) {
-            throw new Exception("SMTP连接失败: [$errno] $errstr");
-        }
-        
-        stream_set_timeout($this->socket, $this->timeout);
-        
-        // Read welcome message
-        $response = $this->readResponse();
-        if (!$this->isResponseOK($response, '220')) {
-            throw new Exception("SMTP服务器欢迎失败: $response");
-        }
-        
-        return true;
-    }
-    
-    public function ehlo($hostname = 'localhost') {
-        $this->sendCommand("EHLO $hostname");
-        $response = $this->readMultilineResponse();
-        
-        if (!$this->isResponseOK($response, '250')) {
-            throw new Exception("EHLO失败: $response");
-        }
-        
-        return $response;
-    }
-    
-    public function authenticate() {
-        // AUTH LOGIN
-        $this->sendCommand("AUTH LOGIN");
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '334')) {
-            throw new Exception("AUTH LOGIN失败: $response");
-        }
-        
-        // Send username (Base64 encoded)
-        $encodedUser = base64_encode($this->username);
-        $this->sendCommand($encodedUser);
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '334')) {
-            throw new Exception("用户名认证失败: $response");
-        }
-        
-        // Send password (Base64 encoded)
-        $encodedPass = base64_encode($this->password);
-        $this->sendCommand($encodedPass);
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '235')) {
-            throw new Exception("密码认证失败: $response");
-        }
-        
-        return true;
-    }
-    
-    public function sendMail($from, $to, $subject, $body) {
-        // MAIL FROM
-        $this->sendCommand("MAIL FROM: <$from>");
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '250')) {
-            throw new Exception("MAIL FROM失败: $response");
-        }
-        
-        // RCPT TO
-        $this->sendCommand("RCPT TO: <$to>");
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '250')) {
-            throw new Exception("RCPT TO失败: $response");
-        }
-        
-        // DATA
-        $this->sendCommand("DATA");
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '354')) {
-            throw new Exception("DATA失败: $response");
-        }
-        
-        // Build email headers and body
-        $timestamp = date('r'); // RFC 2822 format
-        $messageId = '<' . uniqid() . '@' . $this->host . '>';
-        
-        $email = "From: SubAlert <$from>\r\n";
-        $email .= "To: <$to>\r\n";
-        $email .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
-        $email .= "Date: $timestamp\r\n";
-        $email .= "Message-ID: $messageId\r\n";
-        $email .= "MIME-Version: 1.0\r\n";
-        $email .= "Content-Type: text/html; charset=utf-8\r\n";
-        $email .= "Content-Transfer-Encoding: 8bit\r\n";
-        $email .= "\r\n";
-        $email .= $body;
-        $email .= "\r\n.\r\n";
-        
-        // Send email content
-        fwrite($this->socket, $email);
-        fflush($this->socket);
-        
-        $response = $this->readResponse();
-        
-        if (!$this->isResponseOK($response, '250')) {
-            throw new Exception("邮件发送失败: $response");
-        }
-        
-        return true;
-    }
-    
-    public function quit() {
-        if ($this->socket) {
-            $this->sendCommand("QUIT");
-            $this->readResponse();
-            fclose($this->socket);
-        }
-    }
-    
-    private function sendCommand($command) {
-        fwrite($this->socket, $command . "\r\n");
-        fflush($this->socket);
-    }
-    
-    private function readResponse() {
-        $response = fgets($this->socket, 512);
-        if ($response === false) {
-            throw new Exception("读取服务器响应失败");
-        }
-        return trim($response);
-    }
-    
-    private function readMultilineResponse() {
-        $response = '';
-        while (true) {
-            $line = fgets($this->socket, 512);
-            if ($line === false) break;
-            
-            $response .= $line;
-            
-            // Check if this is the last line (4th character is space)
-            if (strlen($line) >= 4 && $line[3] === ' ') {
-                break;
-            }
-        }
-        return trim($response);
-    }
-    
-    private function isResponseOK($response, $expectedCode) {
-        return strpos($response, $expectedCode) === 0;
-    }
-}
-
-/**
- * Enhanced email sending function using SMTP
- */
-function sendEmailSMTP($to, $subject, $body, $smtpConfig) {
-    try {
-        $smtp = new SMTPClient(
-            $smtpConfig['host'],
-            $smtpConfig['port'],
-            $smtpConfig['user'],
-            $smtpConfig['pass']
-        );
-        
-        $smtp->connect();
-        $smtp->ehlo($_SERVER['HTTP_HOST'] ?? 'localhost');
-        $smtp->authenticate();
-        $smtp->sendMail($smtpConfig['user'], $to, $subject, $body);
-        $smtp->quit();
-        
-        return true;
-    } catch (Exception $e) {
-        echo "[SMTP ERROR] " . $e->getMessage() . "\n";
-        return false;
-    }
-}
 
 /**
  * Send a text message to a Feishu (Lark) webhook.
@@ -343,7 +131,7 @@ try {
     $pdo = DB::getConnection();
     
     // Load SMTP configuration from settings
-    $stmt = $pdo->query('SELECT `key`, `value` FROM settings WHERE `key` IN ("smtp_host", "smtp_port", "smtp_user", "smtp_pass", "site_name")');
+    $stmt = $pdo->query('SELECT `key`, `value` FROM settings WHERE `key` IN ("smtp_host", "smtp_port", "smtp_user", "smtp_pass", "site_name", "default_from_email", "ses_from_email")');
     $settings = [];
     while ($row = $stmt->fetch()) {
         $settings[$row['key']] = $row['value'];
@@ -360,7 +148,11 @@ try {
     } else {
         echo "✅ SMTP配置检查通过\n";
         echo "SMTP服务器: " . $settings['smtp_host'] . ":" . ($settings['smtp_port'] ?? '465') . "\n";
-        echo "发送账户: " . $settings['smtp_user'] . "\n\n";
+        echo "发送账户: " . $settings['smtp_user'] . "\n";
+        
+        // 检测服务类型
+        $isAmazonSES = strpos($settings['smtp_host'], 'amazonaws.com') !== false;
+        echo "服务类型: " . ($isAmazonSES ? 'Amazon SES' : '传统SMTP') . "\n\n";
     }
     
     $smtpConfig = [
@@ -371,6 +163,25 @@ try {
     ];
     
     $siteName = $settings['site_name'] ?? 'SubAlert';
+    
+    // 获取发件人邮箱
+    $fromEmail = null;
+    if ($smtpConfigured) {
+        $fromEmail = getDefaultFromEmail($smtpConfig);
+        
+        // 如果是Amazon SES，检查是否配置了专用的发件人邮箱
+        $isAmazonSES = strpos($smtpConfig['host'], 'amazonaws.com') !== false;
+        if ($isAmazonSES) {
+            if (!empty($settings['ses_from_email'])) {
+                $fromEmail = $settings['ses_from_email'];
+            } else {
+                // 使用域名默认邮箱
+                $domain = 'subalert.nextone.im'; // 或者从其他配置中获取
+                $fromEmail = "noreply@$domain";
+            }
+            echo "Amazon SES 发件人邮箱: $fromEmail\n\n";
+        }
+    }
     
     $now = date('Y-m-d H:i:s');
     
@@ -453,7 +264,7 @@ try {
         
         switch ($rem['remind_type']) {
             case 'email':
-                if ($smtpConfigured) {
+                if ($smtpConfigured && $fromEmail) {
                     $subject = "[{$siteName}] 订阅到期提醒 - {$rem['subscription_name']}";
                     $body = createEmailTemplate(
                         $rem['subscription_name'], 
@@ -462,7 +273,8 @@ try {
                         $siteName
                     );
                     
-                    $success = sendEmailSMTP($rem['email'], $subject, $body, $smtpConfig);
+                    // 使用增强的邮件发送函数
+                    $success = sendEmailSMTP($rem['email'], $subject, $body, $smtpConfig, $fromEmail, $siteName);
                     
                     if ($success) {
                         echo "  ✅ 邮件发送成功\n";
@@ -470,7 +282,7 @@ try {
                         echo "  ❌ 邮件发送失败\n";
                     }
                 } else {
-                    echo "  ⚠️  SMTP未配置，跳过邮件发送\n";
+                    echo "  ⚠️  SMTP未配置或发件人邮箱未设置，跳过邮件发送\n";
                 }
                 break;
                 
@@ -549,3 +361,4 @@ try {
     echo "错误文件: " . $e->getFile() . ":" . $e->getLine() . "\n";
     exit(1);
 }
+?>

@@ -175,3 +175,76 @@ function log_admin_action(string $action, string $description): void
         $stmt->execute([$_SESSION['admin']['id'], $action, $description]);
     }
 }
+
+// 增强的邮件发送函数 - 添加到 app/helpers/functions.php
+
+/**
+ * 发送邮件的统一函数 - 兼容Amazon SES和传统SMTP
+ * 
+ * @param string $to 收件人邮箱
+ * @param string $subject 邮件主题
+ * @param string $body 邮件内容 (HTML)
+ * @param array $smtpConfig SMTP配置
+ * @param string $fromEmail 发件人邮箱 (对于Amazon SES必须是验证过的)
+ * @param string $fromName 发件人显示名称
+ * @return bool 发送成功返回true，失败返回false
+ */
+function sendEmailSMTP($to, $subject, $body, $smtpConfig, $fromEmail = null, $fromName = 'SubAlert') {
+    try {
+        // 确保包含SMTP客户端类
+        if (!class_exists('\App\Helpers\SMTPClient')) {
+            require_once __DIR__ . '/SMTPClient.php';
+        }
+        
+        $smtp = new \App\Helpers\SMTPClient($smtpConfig);
+        
+        // 确定发件人邮箱
+        $from = $fromEmail ?: $smtpConfig['user'];
+        
+        // 对于Amazon SES，检查是否需要使用特定的发件人邮箱
+        $isAmazonSES = strpos($smtpConfig['host'], 'amazonaws.com') !== false;
+        if ($isAmazonSES && !$fromEmail) {
+            // 如果是Amazon SES但没有指定发件人邮箱，记录警告
+            error_log("Amazon SES需要指定已验证的发件人邮箱地址");
+        }
+        
+        $smtp->connect();
+        $smtp->ehlo($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $smtp->authenticate();
+        $smtp->sendMail($from, $to, $subject, $body, $fromName);
+        $smtp->quit();
+        
+        return true;
+    } catch (\Exception $e) {
+        error_log("邮件发送失败: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * 获取系统默认的发件人邮箱
+ * 根据SMTP配置自动判断合适的发件人地址
+ */
+function getDefaultFromEmail($smtpConfig) {
+    $isAmazonSES = strpos($smtpConfig['host'], 'amazonaws.com') !== false;
+    
+    if ($isAmazonSES) {
+        // 对于Amazon SES，尝试从配置中获取默认发件人邮箱
+        // 可以在settings表中添加一个 'default_from_email' 配置项
+        $pdo = \App\Models\DB::getConnection();
+        $stmt = $pdo->prepare('SELECT value FROM settings WHERE `key` = ?');
+        $stmt->execute(['default_from_email']);
+        $result = $stmt->fetch();
+        
+        if ($result) {
+            return $result['value'];
+        }
+        
+        // 如果没有配置，返回一个基于域名的默认邮箱
+        $domain = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return "noreply@$domain";
+    } else {
+        // 对于传统SMTP，使用SMTP用户名
+        return $smtpConfig['user'];
+    }
+}

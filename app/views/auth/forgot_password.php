@@ -314,9 +314,25 @@ body {
     border-color: var(--success-color);
     box-shadow: 0 0 0 3px var(--success-light);
 }
+
+/* 滚动优化 - 确保页面顶部可见 */
+.scroll-to-top {
+    scroll-behavior: smooth;
+}
+
+/* Flash 消息正常文档流显示 */
+.flash-message-container {
+    margin-bottom: 1rem;
+    /* 移除 sticky 定位，避免覆盖导航栏 */
+}
 </style>
 
 <div class="auth-card">
+    <!-- Flash 消息容器 - 固定在顶部 -->
+    <div class="flash-message-container" id="flashContainer">
+        <!-- Flash 消息将通过 JavaScript 插入这里 -->
+    </div>
+
     <div class="auth-header">
         <div class="auth-brand">
             <i class="fas fa-unlock-alt"></i>
@@ -370,12 +386,37 @@ body {
 </div>
 
 <script>
-// 表单交互增强
+// 页面滚动优化和 Flash 消息处理
 document.addEventListener('DOMContentLoaded', function() {
     const forgotForm = document.getElementById('forgotForm');
     const forgotBtn = document.getElementById('forgotBtn');
     const emailInput = document.getElementById('email');
     const inputs = document.querySelectorAll('.auth-form .form-control');
+    const flashContainer = document.getElementById('flashContainer');
+    
+    // 页面加载时立即滚动到顶部
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+    
+    // 处理服务端 Flash 消息 - 移动到顶部容器并滚动到可视区域
+    const existingFlashMessages = document.querySelectorAll('.flash-message');
+    if (existingFlashMessages.length > 0) {
+        existingFlashMessages.forEach(function(flashMsg) {
+            // 克隆消息到顶部容器
+            const clonedMsg = flashMsg.cloneNode(true);
+            flashContainer.appendChild(clonedMsg);
+            
+            // 移除原来的消息
+            flashMsg.remove();
+        });
+        
+        // 确保 Flash 消息可见 - 滚动到卡片顶部而不是页面顶部
+        setTimeout(function() {
+            scrollToCard();
+        }, 100);
+    }
     
     // 输入框焦点效果
     inputs.forEach(input => {
@@ -436,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             showError('请输入邮箱地址');
             emailInput.focus();
+            scrollToCard(); // 改为滚动到卡片位置
             return;
         }
 
@@ -443,6 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             showError('请输入有效的邮箱地址');
             emailInput.focus();
+            scrollToCard(); // 改为滚动到卡片位置
             return;
         }
 
@@ -452,50 +495,93 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 添加提示信息
         showInfo('正在发送邮件，请稍候...');
+        scrollToCard(); // 改为滚动到卡片位置
     });
 
     // 自动聚焦邮箱输入框
     setTimeout(() => {
-        emailInput.focus();
+        if (!emailInput.value) {
+            emailInput.focus();
+        }
     }, 300);
+
+    // 智能滚动函数 - 滚动到卡片顶部，避免覆盖导航栏
+    function scrollToCard() {
+        const authCard = document.querySelector('.auth-card');
+        if (authCard) {
+            // 计算导航栏高度，确保不被遮挡
+            const navHeight = 80; // 导航栏大概高度
+            const cardTop = authCard.getBoundingClientRect().top + window.pageYOffset;
+            const targetPosition = Math.max(0, cardTop - navHeight - 20); // 额外留20px间距
+            
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    // 滚动到顶部函数 - 用于初始化
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
 
     // 错误提示函数
     function showError(message) {
-        removeExistingAlerts();
-        
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'alert alert-danger temp-alert';
-        errorDiv.innerHTML = `
-            <i class="fas fa-exclamation-triangle"></i>
-            ${message}
-        `;
-
-        forgotForm.insertBefore(errorDiv, forgotForm.firstChild);
-        
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.remove();
-            }
-        }, 5000);
+        showMessage(message, 'error');
     }
 
     // 信息提示函数
     function showInfo(message) {
+        showMessage(message, 'info');
+    }
+
+    // 通用消息显示函数
+    function showMessage(message, type) {
         removeExistingAlerts();
         
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'alert alert-info temp-alert';
-        infoDiv.innerHTML = `
-            <i class="fas fa-info-circle"></i>
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} temp-alert`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${getIconForType(type)}"></i>
             ${message}
         `;
 
-        forgotForm.insertBefore(infoDiv, forgotForm.firstChild);
+        // 插入到顶部容器
+        flashContainer.insertBefore(alertDiv, flashContainer.firstChild);
+        
+        // 滚动到卡片位置确保消息可见
+        setTimeout(() => {
+            scrollToCard();
+        }, 50);
+        
+        // 5秒后自动移除（除非是持久消息）
+        if (type !== 'success') {
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // 根据类型获取图标
+    function getIconForType(type) {
+        const icons = {
+            'error': 'exclamation-triangle',
+            'warning': 'exclamation-circle',
+            'info': 'info-circle',
+            'success': 'check-circle'
+        };
+        return icons[type] || 'info-circle';
     }
 
     // 移除现有提示
     function removeExistingAlerts() {
-        const existingAlerts = document.querySelectorAll('.temp-alert');
+        const existingAlerts = flashContainer.querySelectorAll('.temp-alert');
         existingAlerts.forEach(alert => alert.remove());
     }
 
@@ -525,6 +611,27 @@ document.addEventListener('DOMContentLoaded', function() {
             forgotBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送重置邮件';
         }
     });
+
+    // 处理浏览器后退按钮
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            scrollToTop();
+            if (forgotBtn.disabled) {
+                forgotBtn.disabled = false;
+                forgotBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送重置邮件';
+            }
+        }
+    });
+
+    // 监听窗口大小变化，确保布局正确
+    window.addEventListener('resize', function() {
+        // 延迟滚动，等待布局调整完成
+        setTimeout(() => {
+            if (flashContainer.children.length > 0) {
+                scrollToCard(); // 改为滚动到卡片位置
+            }
+        }, 200);
+    });
 });
 
 // 邮箱验证函数
@@ -536,6 +643,14 @@ function isValidEmail(email) {
 // 页面加载动画
 window.addEventListener('load', function() {
     document.querySelector('.auth-card').style.animation = 'fadeInUp 0.6s ease-out';
+    
+    // 确保页面在顶部
+    setTimeout(() => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }, 100);
 });
 
 // 键盘快捷键支持
@@ -543,6 +658,12 @@ document.addEventListener('keydown', function(e) {
     // Escape键返回登录页
     if (e.key === 'Escape') {
         window.location.href = '/?r=login';
+    }
+    
+    // Ctrl+Home 或 Home 键快速回到卡片顶部
+    if (e.key === 'Home' || (e.ctrlKey && e.key === 'Home')) {
+        e.preventDefault();
+        scrollToCard(); // 改为滚动到卡片位置
     }
 });
 
@@ -558,6 +679,7 @@ style.textContent = `
         align-items: center;
         gap: 0.75rem;
         font-size: 0.9rem;
+        animation: slideInDown 0.3s ease-out;
     }
     
     .alert-danger {
@@ -570,6 +692,12 @@ style.textContent = `
         background-color: var(--primary-light);
         border-color: #bfdbfe;
         color: #1e40af;
+    }
+    
+    .alert-success {
+        background-color: var(--success-light);
+        border-color: #a7f3d0;
+        color: #065f46;
     }
     
     .temp-alert {
@@ -585,6 +713,22 @@ style.textContent = `
             opacity: 1;
             transform: translateY(0);
         }
+    }
+    
+    /* 确保页面滚动平滑 */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Flash 消息容器样式优化 */
+    .flash-message-container {
+        min-height: 0;
+        transition: all 0.3s ease;
+        /* 正常文档流，不覆盖导航栏 */
+    }
+    
+    .flash-message-container:empty {
+        display: none;
     }
     
     /* 登录链接特殊样式 */

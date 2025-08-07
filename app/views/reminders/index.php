@@ -90,7 +90,7 @@ $reminders = $dataStmt->fetchAll();
 
     <div class="stats-clickable">
         <div class="stats-divided-content">
-            <div class="stat-item-divided <?php echo empty($currentFilter) ? 'active' : ''; ?>"
+            <div class="stat-item-divided <?php echo empty($currentFilter) ? 'active' : ''; ?>" 
                  onclick="filterByStatus('')">
                 <div class="stat-value-divided"><?php echo number_format($totalReminders); ?></div>
                 <div class="stat-label-divided">
@@ -99,7 +99,7 @@ $reminders = $dataStmt->fetchAll();
                 </div>
             </div>
 
-            <div class="stat-item-divided <?php echo $currentFilter === 'pending' ? 'active' : ''; ?>"
+            <div class="stat-item-divided <?php echo $currentFilter === 'pending' ? 'active' : ''; ?>" 
                  onclick="filterByStatus('pending')">
                 <div class="stat-value-divided"><?php echo $statusCounts['pending']; ?></div>
                 <div class="stat-label-divided">
@@ -108,7 +108,7 @@ $reminders = $dataStmt->fetchAll();
                 </div>
             </div>
 
-            <div class="stat-item-divided <?php echo $currentFilter === 'done' ? 'active' : ''; ?>"
+            <div class="stat-item-divided <?php echo $currentFilter === 'done' ? 'active' : ''; ?>" 
                  onclick="filterByStatus('done')">
                 <div class="stat-value-divided"><?php echo $statusCounts['done']; ?></div>
                 <div class="stat-label-divided">
@@ -117,7 +117,7 @@ $reminders = $dataStmt->fetchAll();
                 </div>
             </div>
 
-            <div class="stat-item-divided <?php echo ($currentFilter === 'pending' || $currentFilter === 'sent') && $currentFilter !== '' ? 'active' : ''; ?>"
+            <div class="stat-item-divided <?php echo ($currentFilter === 'pending' || $currentFilter === 'sent') && $currentFilter !== '' ? 'active' : ''; ?>" 
                  onclick="filterByStatus('active')">
                 <div class="stat-value-divided"><?php echo $activeReminders; ?></div>
                 <div class="stat-label-divided">
@@ -496,18 +496,18 @@ function filterReminders(select, filterType) {
         url.searchParams.delete(filterType);
     }
     url.searchParams.delete('page'); // 筛选时重置到第一页
-
+    
     // 记录当前滚动位置
     const currentScrollY = window.scrollY;
     url.searchParams.set('scroll', currentScrollY);
-
+    
     window.location = url;
 }
 
 // 按状态筛选的函数
 function filterByStatus(status) {
     const url = new URL(window.location);
-
+    
     if (status === '' || status === 'active') {
         // 特殊处理：如果是'active'，转换为pending,sent的组合筛选
         if (status === 'active') {
@@ -519,13 +519,13 @@ function filterByStatus(status) {
     } else {
         url.searchParams.set('status', status);
     }
-
+    
     url.searchParams.delete('page'); // 筛选时重置到第一页
-
+    
     // 记录当前滚动位置
     const currentScrollY = window.scrollY;
     url.searchParams.set('scroll', currentScrollY);
-
+    
     window.location = url;
 }
 
@@ -540,11 +540,11 @@ function jumpToPage(pageNum) {
 
     const url = new URL(window.location);
     url.searchParams.set('page', page);
-
+    
     // 记录当前滚动位置
     const currentScrollY = window.scrollY;
     url.searchParams.set('scroll', currentScrollY);
-
+    
     window.location = url;
 }
 
@@ -599,11 +599,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function navigateToPage(url) {
         // 记录当前滚动位置
         const currentScrollY = window.scrollY;
-
+        
         // 添加滚动位置到URL
         const urlObj = new URL(url, window.location.origin);
         urlObj.searchParams.set('scroll', currentScrollY);
-
+        
         window.location.href = urlObj.toString();
     }
 
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 top: parseInt(scrollPosition),
                 behavior: 'smooth'
             });
-
+            
             // 清理URL中的scroll参数（可选）
             const cleanUrl = new URL(window.location);
             cleanUrl.searchParams.delete('scroll');
