@@ -89,6 +89,10 @@ switch ($route) {
         require_admin_role(['super', 'user_admin']);
         (new AdminUserController())->delete();
         break;
+    case 'user-batch':
+        require_admin_role(['super', 'user_admin']);
+        (new AdminUserController())->batchAction();
+        break;
     case 'settings':
         require_admin_role(['super', 'system_admin']);
         (new \App\Controllers\Admin\AdminSettingsController())->index();
