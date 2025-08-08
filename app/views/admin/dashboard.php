@@ -1,10 +1,5 @@
 <?php include __DIR__ . '/../layout/admin_header.php'; ?>
 
-<h1 class="page-title">
-    <i class="fas fa-tachometer-alt"></i>
-    管理员仪表盘
-</h1>
-
 <!-- 系统信息卡片 -->
 <div class="card mb-4">
     <div class="card-header">
