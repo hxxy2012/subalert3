@@ -6,14 +6,80 @@ use App\Models\DB;
 class AdminUserController
 {
     /**
-     * Display list of users.
+     * Display list of users with filtering support.
      */
     public function index(): void
     {
         $pdo = DB::getConnection();
-        $stmt = $pdo->query('SELECT id, email, nickname, status, created_at, last_login_at FROM users');
+        
+        // Build query with filters
+        $where = [];
+        $params = [];
+        
+        // Search filter
+        $search = trim($_GET['search'] ?? '');
+        if (!empty($search)) {
+            $where[] = '(email LIKE ? OR nickname LIKE ?)';
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+        
+        // Status filter
+        $status = trim($_GET['status'] ?? '');
+        if (!empty($status) && in_array($status, ['normal', 'frozen', 'cancelled'])) {
+            $where[] = 'status = ?';
+            $params[] = $status;
+        }
+        
+        // Date range filters
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo = trim($_GET['date_to'] ?? '');
+        if (!empty($dateFrom)) {
+            $where[] = 'created_at >= ?';
+            $params[] = $dateFrom . ' 00:00:00';
+        }
+        if (!empty($dateTo)) {
+            $where[] = 'created_at <= ?';
+            $params[] = $dateTo . ' 23:59:59';
+        }
+        
+        // Build final query
+        $sql = 'SELECT id, email, nickname, status, created_at, last_login_at FROM users';
+        if (!empty($where)) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+        $sql .= ' ORDER BY created_at DESC';
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         $users = $stmt->fetchAll();
-        view('admin/users', ['users' => $users]);
+        
+        // Get user counts for status badges
+        $statusCounts = $this->getUserStatusCounts($pdo);
+        
+        view('admin/users', [
+            'users' => $users,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo
+            ],
+            'statusCounts' => $statusCounts
+        ]);
+    }
+    
+    /**
+     * Get user counts by status for filter badges.
+     */
+    private function getUserStatusCounts($pdo): array
+    {
+        $stmt = $pdo->query('SELECT status, COUNT(*) as count FROM users GROUP BY status');
+        $counts = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+        
+        // Ensure all statuses are represented
+        $defaultCounts = ['normal' => 0, 'frozen' => 0, 'cancelled' => 0];
+        return array_merge($defaultCounts, $counts);
     }
 
     /**
