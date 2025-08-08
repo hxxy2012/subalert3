@@ -1053,3 +1053,22 @@ body {
         padding: 3rem 1rem;
     }
 }
+
+/* Additional utility classes for user management */
+.form-help {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+.bg-light {
+    background-color: var(--gray-50);
+}
+
+.border-danger {
+    border-color: var(--danger-color) !important;
+}
+
+.text-white {
+    color: var(--white) !important;
+}

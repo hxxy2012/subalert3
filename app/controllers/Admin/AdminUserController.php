@@ -11,9 +11,24 @@ class AdminUserController
     public function index(): void
     {
         $pdo = DB::getConnection();
-        $stmt = $pdo->query('SELECT id, email, nickname, status, created_at, last_login_at FROM users');
+        
+        // Get user statistics
+        $totalUsers = $pdo->query('SELECT COUNT(*) as cnt FROM users')->fetch()['cnt'] ?? 0;
+        $activeUsers = $pdo->query('SELECT COUNT(*) as cnt FROM users WHERE status = "normal"')->fetch()['cnt'] ?? 0;
+        $frozenUsers = $pdo->query('SELECT COUNT(*) as cnt FROM users WHERE status = "frozen"')->fetch()['cnt'] ?? 0;
+        $cancelledUsers = $pdo->query('SELECT COUNT(*) as cnt FROM users WHERE status = "cancelled"')->fetch()['cnt'] ?? 0;
+        
+        // Get user list with pagination (optional for now)
+        $stmt = $pdo->query('SELECT id, email, nickname, status, created_at, last_login_at FROM users ORDER BY created_at DESC');
         $users = $stmt->fetchAll();
-        view('admin/users', ['users' => $users]);
+        
+        view('admin/users', [
+            'users' => $users,
+            'totalUsers' => $totalUsers,
+            'activeUsers' => $activeUsers,
+            'frozenUsers' => $frozenUsers,
+            'cancelledUsers' => $cancelledUsers
+        ]);
     }
 
     /**
