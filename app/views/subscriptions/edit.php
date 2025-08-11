@@ -1,3 +1,23 @@
+<?php
+// 获取当前订阅的提醒设置
+$pdo = \App\Models\DB::getConnection();
+$stmt = $pdo->prepare('SELECT * FROM reminders WHERE subscription_id = ? ORDER BY created_at DESC LIMIT 1');
+$stmt->execute([$subscription['id']]);
+$currentReminder = $stmt->fetch();
+
+// 获取用户默认设置
+$user = current_user();
+$settingsStmt = $pdo->prepare('SELECT setting_key, setting_value FROM user_settings WHERE user_id = ?');
+$settingsStmt->execute([$user['id']]);
+$userSettings = [];
+while ($row = $settingsStmt->fetch()) {
+    $userSettings[$row['setting_key']] = $row['setting_value'];
+}
+
+$defaultDays = $userSettings['default_remind_days'] ?? 3;
+$defaultType = $userSettings['default_remind_type'] ?? 'email';
+?>
+
 <h1 class="page-title">
     <i class="fas fa-edit"></i>
     编辑订阅
@@ -88,28 +108,26 @@
                 <!-- 到期日期 -->
                 <div class="form-group">
                     <label for="expire_at" class="form-label">
-                        <i class="fas fa-hourglass-end"></i>
+                        <i class="fas fa-clock"></i>
                         到期日期 <span class="text-danger">*</span>
                     </label>
-                    <input
-                        type="date"
-                        id="expire_at"
-                        name="expire_at"
-                        class="form-control"
-                        value="<?php echo $subscription['expire_at']; ?>"
-                        required
-                    >
+                    <input type="date"
+                           id="expire_at"
+                           name="expire_at"
+                           class="form-control"
+                           value="<?php echo $subscription['expire_at']; ?>"
+                           required
+                           min="<?php echo date('Y-m-d'); ?>"
+                           onchange="updateReminderDate()">
+                    <small class="text-muted">请选择服务的到期日期</small>
                 </div>
 
-                <!-- 自动续费 -->
-                <div class="form-group">
-                    <label class="form-label">
-                        <i class="fas fa-rotate"></i>
-                        续费设置
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="checkbox" name="auto_renew" value="1" <?php echo $subscription['auto_renew'] ? 'checked' : ''; ?>>
-                        自动续费
+                <div class="form-check mb-4">
+                    <input type="checkbox" id="auto_renew" name="auto_renew" value="1" <?php echo $subscription['auto_renew'] ? 'checked' : ''; ?>>
+                    <label for="auto_renew" class="d-flex align-items-center gap-2">
+                        <i class="fas fa-redo text-success"></i>
+                        启用自动续费
+                        <small class="text-muted">（到期前会自动计算下次续费时间）</small>
                     </label>
                 </div>
 
@@ -130,13 +148,102 @@
                     </select>
                 </div>
 
-                <!-- 备注 -->
                 <div class="form-group">
                     <label for="note" class="form-label">
-                        <i class="fas fa-note-sticky"></i>
-                        备注
+                        <i class="fas fa-sticky-note"></i>
+                        备注信息
                     </label>
-                    <textarea id="note" name="note" rows="4" class="form-control"><?php echo htmlspecialchars($subscription['note']); ?></textarea>
+                    <textarea id="note"
+                              name="note"
+                              class="form-control"
+                              rows="3"
+                              placeholder="可以添加账号信息、特殊说明等..."><?php echo htmlspecialchars($subscription['note']); ?></textarea>
+                    <small class="text-muted">选填，用于记录相关说明</small>
+                </div>
+
+                <!-- 提醒设置区块 -->
+                <div class="card mb-4" style="border: 2px solid var(--primary-color); background-color: var(--primary-light);">
+                    <div class="card-header" style="background-color: var(--primary-color); color: white;">
+                        <h4 class="card-title mb-0">
+                            <i class="fas fa-bell"></i>
+                            提醒设置
+                            <small style="opacity: 0.9;">（推荐开启，避免忘记续费）</small>
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input type="checkbox"
+                                   id="enable_reminder"
+                                   name="enable_reminder"
+                                   value="1"
+                                   <?php echo $currentReminder ? 'checked' : ''; ?>
+                                   onchange="toggleReminderSettings()">
+                            <label for="enable_reminder" class="d-flex align-items-center gap-2">
+                                <i class="fas fa-toggle-on text-success"></i>
+                                <div>
+                                    <strong>启用到期提醒</strong>
+                                    <br><small class="text-muted">系统会在订阅到期前自动发送提醒通知</small>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div id="reminderSettings" class="reminder-settings" style="<?php echo $currentReminder ? '' : 'display: none;'; ?>">
+                            <div class="d-flex gap-3 mb-3">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="remind_days" class="form-label">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        提前提醒天数
+                                    </label>
+                                    <select id="remind_days" name="remind_days" class="form-control" onchange="updateReminderDate()">
+                                        <?php for ($i = 1; $i <= 30; $i++): ?>
+                                            <option value="<?php echo $i; ?>" <?php echo ($currentReminder && (int)$currentReminder['remind_days'] === $i) ? 'selected' : ((!$currentReminder && $i == $defaultDays) ? 'selected' : ''); ?>>
+                                                <?php echo $i; ?> 天前
+                                            </option>
+                                        <?php endfor; ?>
+                                    </select>
+                                    <small class="text-muted">在到期前多少天发送提醒</small>
+                                </div>
+
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="remind_type" class="form-label">
+                                        <i class="fas fa-paper-plane"></i>
+                                        提醒方式
+                                    </label>
+                                    <select id="remind_type" name="remind_type" class="form-control">
+                                        <?php
+                                        $types = [
+                                            'email' => '📧 邮件提醒',
+                                            'feishu' => '🔔 飞书通知',
+                                            'wechat' => '💬 企业微信',
+                                            'site' => '🖥️ 站内消息'
+                                        ];
+                                        foreach ($types as $key => $label):
+                                            $isSelected = $currentReminder ?
+                                                ($currentReminder['remind_type'] === $key) :
+                                                ($defaultType === $key);
+                                            $selected = $isSelected ? 'selected' : '';
+                                            echo "<option value='{$key}' {$selected}>{$label}</option>";
+                                        endforeach;
+                                        ?>
+                                    </select>
+                                    <small class="text-muted">选择接收提醒的方式</small>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mb-0" id="reminderPreview">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>提醒预览：</strong>
+                                <span id="reminderText">系统将在到期前 <?php echo $currentReminder ? $currentReminder['remind_days'] : $defaultDays; ?> 天发送提醒</span>
+                                <br>
+                                <small class="text-muted">
+                                    预计提醒时间：<span id="reminderDate"><?php
+                                        $remindDate = date('Y-m-d', strtotime($subscription['expire_at'] . ' -' . ($currentReminder ? $currentReminder['remind_days'] : $defaultDays) . ' day'));
+                                        echo $remindDate;
+                                    ?></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 操作按钮 -->
@@ -154,3 +261,73 @@
         </div>
     </div>
 </div>
+
+<script>
+// 切换提醒设置显示/隐藏
+function toggleReminderSettings() {
+    const checkbox = document.getElementById('enable_reminder');
+    const settings = document.getElementById('reminderSettings');
+
+    if (checkbox.checked) {
+        settings.style.display = 'block';
+        updateReminderDate();
+    } else {
+        settings.style.display = 'none';
+    }
+}
+
+// 更新提醒日期预览
+function updateReminderDate() {
+    const expireDate = document.getElementById('expire_at').value;
+    const remindDays = parseInt(document.getElementById('remind_days').value);
+
+    if (expireDate && remindDays) {
+        const expire = new Date(expireDate);
+        const remind = new Date(expire.getTime() - (remindDays * 24 * 60 * 60 * 1000));
+
+        const reminderText = document.getElementById('reminderText');
+        const reminderDate = document.getElementById('reminderDate');
+
+        reminderText.textContent = `系统将在到期前 ${remindDays} 天发送提醒`;
+        reminderDate.textContent = remind.toLocaleDateString('zh-CN');
+
+        // 检查提醒日期是否已过
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        if (remind < now) {
+            reminderDate.style.color = '#dc3545';
+            reminderDate.innerHTML += ' <small>(已过期)</small>';
+        } else {
+            reminderDate.style.color = '#28a745';
+        }
+    }
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    updateReminderDate();
+});
+</script>
+
+<style>
+.reminder-settings {
+    transition: all 0.3s ease;
+}
+
+.form-check input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
+}
+
+:root {
+    --primary-color: #007bff;
+    --primary-light: #f8f9ff;
+    --gray-500: #6c757d;
+}
+</style>
