@@ -157,7 +157,7 @@ $reminders = $dataStmt->fetchAll();
                 <input type="hidden" name="status" value="<?php echo htmlspecialchars($_GET['status'] ?? ''); ?>">
                 <input type="hidden" name="type" value="<?php echo htmlspecialchars($_GET['type'] ?? ''); ?>">
 
-                <div class="table-responsive">
+                <div class="table-responsive table-container">
                     <table class="table">
                         <thead>
                             <tr>
@@ -280,11 +280,11 @@ $reminders = $dataStmt->fetchAll();
                                     <td>
                                         <div class="table-actions">
                                             <?php if ($rem['status'] === 'pending' || $rem['status'] === 'sent'): ?>
-                                                <div class="btn-group" role="group">
+                                                <div class="btn-group action-dropdown" role="group">
                                                     <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-toggle="dropdown">
                                                         <i class="fas fa-cog"></i> 操作
                                                     </button>
-                                                    <div class="dropdown-menu">
+                                                    <div class="dropdown-menu dropdown-menu-fixed">
                                                         <a class="dropdown-item" href="/?r=reminder-action&id=<?php echo $rem['id']; ?>&op=renew">
                                                             <i class="fas fa-redo text-success"></i> 已续费
                                                         </a>
@@ -496,18 +496,18 @@ function filterReminders(select, filterType) {
         url.searchParams.delete(filterType);
     }
     url.searchParams.delete('page'); // 筛选时重置到第一页
-    
+
     // 记录当前滚动位置
     const currentScrollY = window.scrollY;
     url.searchParams.set('scroll', currentScrollY);
-    
+
     window.location = url;
 }
 
 // 按状态筛选的函数
 function filterByStatus(status) {
     const url = new URL(window.location);
-    
+
     if (status === '' || status === 'active') {
         // 特殊处理：如果是'active'，转换为pending,sent的组合筛选
         if (status === 'active') {
@@ -519,13 +519,13 @@ function filterByStatus(status) {
     } else {
         url.searchParams.set('status', status);
     }
-    
+
     url.searchParams.delete('page'); // 筛选时重置到第一页
-    
+
     // 记录当前滚动位置
     const currentScrollY = window.scrollY;
     url.searchParams.set('scroll', currentScrollY);
-    
+
     window.location = url;
 }
 
@@ -540,11 +540,11 @@ function jumpToPage(pageNum) {
 
     const url = new URL(window.location);
     url.searchParams.set('page', page);
-    
+
     // 记录当前滚动位置
     const currentScrollY = window.scrollY;
     url.searchParams.set('scroll', currentScrollY);
-    
+
     window.location = url;
 }
 
@@ -599,11 +599,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function navigateToPage(url) {
         // 记录当前滚动位置
         const currentScrollY = window.scrollY;
-        
+
         // 添加滚动位置到URL
         const urlObj = new URL(url, window.location.origin);
         urlObj.searchParams.set('scroll', currentScrollY);
-        
+
         window.location.href = urlObj.toString();
     }
 
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 top: parseInt(scrollPosition),
                 behavior: 'smooth'
             });
-            
+
             // 清理URL中的scroll参数（可选）
             const cleanUrl = new URL(window.location);
             cleanUrl.searchParams.delete('scroll');
@@ -647,6 +647,57 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* 解决下拉菜单被遮挡的问题 */
+.table-container {
+    overflow: visible !important;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    overflow-y: visible !important;
+}
+
+.action-dropdown {
+    position: relative;
+}
+
+.dropdown-menu-fixed {
+    position: fixed !important;
+    z-index: 9999 !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175) !important;
+    border: 1px solid rgba(0,0,0,.15) !important;
+    background-color: #fff !important;
+    border-radius: 0.375rem !important;
+    min-width: 160px !important;
+    padding: 0.5rem 0 !important;
+    margin: 0.125rem 0 0 !important;
+}
+
+/* 确保表格行不会裁剪下拉菜单 */
+.table tbody tr {
+    position: relative;
+    z-index: 1;
+}
+
+.table tbody tr .action-dropdown.show {
+    z-index: 9998;
+}
+
+/* 移动端特殊处理 */
+@media (max-width: 768px) {
+    .dropdown-menu-fixed {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 200px !important;
+        max-width: 90vw !important;
+    }
+}
+
 /* 分页样式 */
 .pagination {
     display: flex;
