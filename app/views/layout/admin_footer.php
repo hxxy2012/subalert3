@@ -4,7 +4,7 @@
 
     </main>
 
-    <!-- 简化的页脚 - 移除大块蓝黑色背景
+    <!-- 简化的页脚 - 移除大块蓝黑色背景 
     <footer class="admin-footer-minimal">
         <div class="container">
             <div class="footer-content-minimal">
@@ -153,7 +153,7 @@
             padding: 0.75rem 0;
             margin-top: 1.5rem;
         }
-
+        
         .footer-content-minimal {
             font-size: 0.8rem;
         }

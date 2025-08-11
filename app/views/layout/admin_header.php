@@ -19,9 +19,25 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <!-- 管理后台特定样式 -->
     <style>
+        /* 隐藏任何可能存在的普通导航栏 */
+        .navbar:not(.admin-navbar) {
+            display: none !important;
+        }
+
+        /* 确保页面内容不被固定导航栏遮挡 */
+        body {
+            padding-top: 70px;
+        }
+
         .admin-navbar {
             background: var(--primary-color);
             border-bottom: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .admin-navbar .nav-brand {
@@ -77,42 +93,45 @@ if (session_status() === PHP_SESSION_NONE) {
         }
 
         .nav-dropdown-menu {
-            display: none;
             position: absolute;
             top: 100%;
-            right: 0;
+            left: 0;
             background: var(--white);
             border: 1px solid var(--gray-200);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-lg);
             min-width: 200px;
-            z-index: 1000;
-            padding: 0.5rem 0;
-            list-style: none;
-            margin: 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+            z-index: 1001;
         }
 
         .nav-dropdown-menu.show {
-            display: block;
-            animation: slideDown 0.2s ease-out;
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            animation: slideDown 0.2s ease forwards;
         }
 
         .nav-dropdown-menu li {
-            margin: 0;
+            list-style: none;
         }
 
         .nav-dropdown-menu a {
-            color: var(--gray-700) !important;
-            background: transparent !important;
-            padding: 0.75rem 1rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            width: 100%;
-            border-radius: 0;
-            font-size: 0.875rem;
-            transition: var(--transition);
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-color) !important;
             text-decoration: none;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .nav-dropdown-menu a:last-child {
+            border-bottom: none;
         }
 
         .nav-dropdown-menu a:hover {
@@ -120,7 +139,7 @@ if (session_status() === PHP_SESSION_NONE) {
             color: var(--primary-color) !important;
         }
 
-        .nav-dropdown-menu .dropdown-divider {
+        .dropdown-divider {
             height: 1px;
             background: var(--gray-200);
             margin: 0.5rem 0;
@@ -128,21 +147,20 @@ if (session_status() === PHP_SESSION_NONE) {
 
         /* 移动端适配 */
         @media (max-width: 768px) {
+            body {
+                padding-top: 60px;
+            }
+
             .nav-dropdown-menu {
                 position: static;
                 box-shadow: none;
                 border: none;
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.95);
                 margin-top: 0.5rem;
-                border-radius: 0;
+                border-radius: var(--border-radius);
             }
 
             .nav-dropdown-menu a {
-                color: rgba(255, 255, 255, 0.8) !important;
-                padding-left: 2rem;
-            }
-
-            .nav-dropdown-menu a:hover {
                 background-color: rgba(255, 255, 255, 0.1) !important;
                 color: var(--white) !important;
             }
@@ -164,9 +182,15 @@ if (session_status() === PHP_SESSION_NONE) {
             width: 16px;
             text-align: center;
         }
+
+        /* 确保主要内容区域的适当间距 */
+        .container {
+            padding-top: 2rem;
+        }
     </style>
 </head>
 <body>
+    <!-- 管理员专用导航栏 -->
     <nav class="navbar admin-navbar">
         <div class="nav-container">
             <a href="/admin.php?r=dashboard" class="nav-brand">
@@ -320,6 +344,25 @@ if (session_status() === PHP_SESSION_NONE) {
         <?php display_flash(); ?>
 
         <script>
+            // 页面加载后立即隐藏任何普通导航栏
+            document.addEventListener('DOMContentLoaded', function() {
+                // 隐藏所有非管理员导航栏
+                const navbars = document.querySelectorAll('.navbar:not(.admin-navbar)');
+                navbars.forEach(navbar => {
+                    navbar.style.display = 'none';
+                });
+                
+                // 隐藏可能包含"SubAlert 登录 注册"的元素
+                const navBrands = document.querySelectorAll('.nav-brand');
+                navBrands.forEach(brand => {
+                    if (brand.textContent.includes('SubAlert') && 
+                        !brand.textContent.includes('管理后台') && 
+                        !brand.closest('.admin-navbar')) {
+                        brand.closest('.navbar').style.display = 'none';
+                    }
+                });
+            });
+
             function toggleMobileMenu() {
                 const navMenu = document.getElementById('navMenu');
                 navMenu.classList.toggle('show');
@@ -382,22 +425,6 @@ if (session_status() === PHP_SESSION_NONE) {
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
                     document.getElementById('navMenu').classList.remove('show');
-                    const allDropdowns = document.querySelectorAll('.nav-dropdown-menu');
-                    const allDropdownToggles = document.querySelectorAll('.nav-dropdown');
-
-                    allDropdowns.forEach(dropdown => {
-                        dropdown.classList.remove('show');
-                    });
-
-                    allDropdownToggles.forEach(toggle => {
-                        toggle.classList.remove('show');
-                    });
-                }
-            });
-
-            // ESC键关闭下拉菜单
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
                     const allDropdowns = document.querySelectorAll('.nav-dropdown-menu');
                     const allDropdownToggles = document.querySelectorAll('.nav-dropdown');
 
