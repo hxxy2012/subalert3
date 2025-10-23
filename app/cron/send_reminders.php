@@ -53,6 +53,46 @@ function sendWeChat(string $webhook, string $content): bool
 }
 
 /**
+ * Post a message to Weibo using OAuth2 API.
+ * Requires access_token stored in user settings.
+ */
+function sendWeibo(string $accessToken, string $content): bool
+{
+    if (empty($accessToken)) {
+        return false;
+    }
+    
+    // Weibo API endpoint for posting status
+    $apiUrl = 'https://api.weibo.com/2/statuses/share.json';
+    
+    $postData = [
+        'access_token' => $accessToken,
+        'status' => $content
+    ];
+    
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    
+    $response = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    // Check if request was successful
+    if ($status >= 200 && $status < 300) {
+        $result = json_decode($response, true);
+        // Weibo API returns JSON with 'id' field on success
+        return isset($result['id']);
+    }
+    
+    // Log error for debugging
+    error_log("Weibo API Error (HTTP $status): $response");
+    return false;
+}
+
+/**
  * Create HTML email template for reminders
  */
 function createEmailTemplate($subscriptionName, $expireDate, $daysLeft, $siteName = 'SubAlert') {
@@ -327,6 +367,24 @@ try {
                 // In a real application, you might want to store these in a notifications table
                 $success = true;
                 echo "  ✅ 站内通知已创建\n";
+                break;
+                
+            case 'weibo':
+                $accessToken = $userSettings['weibo_access_token'] ?? '';
+                $message = sprintf(
+                    "🔔 订阅到期提醒\n\n📋 服务名称：%s\n⏰ 到期时间：%s\n⏳ 剩余时间：%d 天\n\n💡 请及时续费以免影响使用 #订阅管理 #SubAlert",
+                    $rem['subscription_name'],
+                    $rem['subscription_expire'],
+                    $daysLeft
+                );
+                
+                $success = sendWeibo($accessToken, $message);
+                
+                if ($success) {
+                    echo "  ✅ 微博发送成功\n";
+                } else {
+                    echo "  ❌ 微博发送失败\n";
+                }
                 break;
         }
         

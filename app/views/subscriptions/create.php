@@ -165,6 +165,7 @@
                                         <option value="email">📧 邮件提醒</option>
                                         <option value="feishu">🔔 飞书通知</option>
                                         <option value="wechat">💬 企业微信</option>
+                                        <option value="weibo">📱 微博发布</option>
                                         <option value="site">🖥️ 站内消息</option>
                                     </select>
                                 </div>

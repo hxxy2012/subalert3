@@ -27,6 +27,8 @@ class SettingsController
         $defaultType  = $settings['default_remind_type'] ?? 'email';
         $feishuWebhook = $settings['feishu_webhook'] ?? '';
         $wechatWebhook = $settings['wechat_webhook'] ?? '';
+        $weiboAccessToken = $settings['weibo_access_token'] ?? '';
+        $weiboUid = $settings['weibo_uid'] ?? '';
         $muteStart    = $settings['mute_start'] ?? '';
         $muteEnd      = $settings['mute_end'] ?? '';
         $remindersEnabled = $settings['reminders_enabled'] ?? '1';
@@ -35,6 +37,8 @@ class SettingsController
             $defaultType  = trim($_POST['default_remind_type'] ?? 'email');
             $feishuWebhook = trim($_POST['feishu_webhook'] ?? '');
             $wechatWebhook = trim($_POST['wechat_webhook'] ?? '');
+            $weiboAccessToken = trim($_POST['weibo_access_token'] ?? '');
+            $weiboUid = trim($_POST['weibo_uid'] ?? '');
             $muteStart    = trim($_POST['mute_start'] ?? '');
             $muteEnd      = trim($_POST['mute_end'] ?? '');
             $remindersEnabled = isset($_POST['reminders_enabled']) ? '1' : '0';
@@ -43,6 +47,8 @@ class SettingsController
             $this->saveSetting($pdo, $user['id'], 'default_remind_type', $defaultType);
             $this->saveSetting($pdo, $user['id'], 'feishu_webhook', $feishuWebhook);
             $this->saveSetting($pdo, $user['id'], 'wechat_webhook', $wechatWebhook);
+            $this->saveSetting($pdo, $user['id'], 'weibo_access_token', $weiboAccessToken);
+            $this->saveSetting($pdo, $user['id'], 'weibo_uid', $weiboUid);
             $this->saveSetting($pdo, $user['id'], 'mute_start', $muteStart);
             $this->saveSetting($pdo, $user['id'], 'mute_end', $muteEnd);
             $this->saveSetting($pdo, $user['id'], 'reminders_enabled', $remindersEnabled);
@@ -54,6 +60,8 @@ class SettingsController
                 'defaultType' => $defaultType,
                 'feishuWebhook' => $feishuWebhook,
                 'wechatWebhook' => $wechatWebhook,
+                'weiboAccessToken' => $weiboAccessToken,
+                'weiboUid' => $weiboUid,
                 'muteStart' => $muteStart,
                 'muteEnd' => $muteEnd,
                 'remindersEnabled' => $remindersEnabled
