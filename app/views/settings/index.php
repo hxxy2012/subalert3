@@ -58,6 +58,7 @@
                                     'email' => '📧 邮件提醒',
                                     'feishu' => '🔔 飞书通知',
                                     'wechat' => '💬 企业微信',
+                                    'weibo' => '📱 微博发布',
                                     'site' => '🖥️ 站内消息'
                                 ];
                                 foreach ($types as $key => $label):
@@ -113,6 +114,41 @@
                             <i class="fas fa-info-circle"></i>
                             在企业微信群聊中添加机器人，获取 Webhook 地址
                             <a href="#" class="text-primary" onclick="showWechatHelp()">查看配置教程</a>
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weibo_access_token" class="form-label">
+                            <i class="fas fa-key"></i>
+                            微博 Access Token
+                        </label>
+                        <input type="text"
+                               id="weibo_access_token"
+                               name="weibo_access_token"
+                               class="form-control"
+                               value="<?php echo htmlspecialchars($weiboAccessToken); ?>"
+                               placeholder="2.00xxx...">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            通过微博开放平台获取 Access Token
+                            <a href="#" class="text-primary" onclick="showWeiboHelp()">查看配置教程</a>
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weibo_uid" class="form-label">
+                            <i class="fas fa-user"></i>
+                            微博 UID (可选)
+                        </label>
+                        <input type="text"
+                               id="weibo_uid"
+                               name="weibo_uid"
+                               class="form-control"
+                               value="<?php echo htmlspecialchars($weiboUid); ?>"
+                               placeholder="您的微博用户ID">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            可选项，用于验证发布账号
                         </small>
                     </div>
                 </div>
@@ -263,6 +299,54 @@ function showWechatHelp() {
         <div class="alert alert-info mt-3">
             <i class="fas fa-info-circle"></i>
             企业微信机器人支持发送文本、图片、文件等多种格式的消息
+        </div>
+    `;
+    document.getElementById('helpModal').style.display = 'flex';
+}
+
+function showWeiboHelp() {
+    document.getElementById('helpTitle').textContent = '微博自动发布配置教程';
+    document.getElementById('helpContent').innerHTML = `
+        <ol class="mb-0">
+            <li class="mb-3">
+                <strong>注册微博开放平台账号</strong>
+                <p class="text-muted mb-2">访问 <a href="https://open.weibo.com" target="_blank">https://open.weibo.com</a> 注册开发者账号</p>
+            </li>
+            <li class="mb-3">
+                <strong>创建应用</strong>
+                <p class="text-muted mb-2">进入"微连接" → "移动应用" → 创建新应用</p>
+            </li>
+            <li class="mb-3">
+                <strong>获取 App Key 和 App Secret</strong>
+                <p class="text-muted mb-2">在应用详情页面查看 App Key 和 App Secret</p>
+            </li>
+            <li class="mb-3">
+                <strong>OAuth2.0 授权</strong>
+                <p class="text-muted mb-2">使用 OAuth2.0 流程获取 Access Token<br>
+                授权地址：https://api.weibo.com/oauth2/authorize?client_id=YOUR_APP_KEY&response_type=code&redirect_uri=YOUR_CALLBACK_URL</p>
+            </li>
+            <li class="mb-3">
+                <strong>获取 Access Token</strong>
+                <p class="text-muted mb-2">通过授权码换取 Access Token<br>
+                POST https://api.weibo.com/oauth2/access_token</p>
+            </li>
+            <li class="mb-0">
+                <strong>填入配置</strong>
+                <p class="text-muted mb-2">将获取到的 Access Token 填入上方输入框</p>
+            </li>
+        </ol>
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>重要提示：</strong>
+            <ul class="mb-0 mt-2">
+                <li>Access Token 具有时效性，过期后需要重新获取</li>
+                <li>请妥善保管 Token，避免泄露给他人</li>
+                <li>建议使用长期 Token 或实现自动刷新机制</li>
+            </ul>
+        </div>
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle"></i>
+            如需详细的 OAuth 授权流程，请参考微博开放平台官方文档
         </div>
     `;
     document.getElementById('helpModal').style.display = 'flex';

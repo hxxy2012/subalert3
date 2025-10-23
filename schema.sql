@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `reminders` (
   `user_id` INT UNSIGNED NOT NULL,
   `subscription_id` INT UNSIGNED NOT NULL,
   `remind_days` INT NOT NULL DEFAULT 1,
-  `remind_type` ENUM('email','feishu','wechat','site') NOT NULL,
+  `remind_type` ENUM('email','feishu','wechat','site','weibo') NOT NULL,
   `remind_at` DATETIME DEFAULT NULL,
   `status` ENUM('pending','sent','read','done','cancelled') DEFAULT 'pending',
   `sent_at` DATETIME DEFAULT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
 -- Reminder templates table
 CREATE TABLE IF NOT EXISTS `templates` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `type` ENUM('email','feishu','wechat','site') NOT NULL,
+  `type` ENUM('email','feishu','wechat','site','weibo') NOT NULL,
   `name` VARCHAR(100) NOT NULL,
   `content` TEXT NOT NULL,
   `created_at` DATETIME NOT NULL,
