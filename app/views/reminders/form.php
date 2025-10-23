@@ -11,7 +11,7 @@
     <label for="remind_type">提醒方式</label>
     <select id="remind_type" name="remind_type">
         <?php
-        $types = ['email' => '邮件', 'feishu' => '飞书', 'wechat' => '企业微信', 'site' => '站内消息'];
+        $types = ['email' => '邮件', 'feishu' => '飞书', 'wechat' => '企业微信', 'weibo' => '微博', 'site' => '站内消息'];
         foreach ($types as $key => $label) {
             $selected = (isset($defaultType) && $defaultType === $key) ? 'selected' : '';
             echo "<option value='{$key}' {$selected}>{$label}</option>";

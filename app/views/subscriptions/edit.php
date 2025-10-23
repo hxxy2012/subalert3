@@ -215,6 +215,7 @@ $defaultType = $userSettings['default_remind_type'] ?? 'email';
                                             'email' => '📧 邮件提醒',
                                             'feishu' => '🔔 飞书通知',
                                             'wechat' => '💬 企业微信',
+                                            'weibo' => '📱 微博发布',
                                             'site' => '🖥️ 站内消息'
                                         ];
                                         foreach ($types as $key => $label):
